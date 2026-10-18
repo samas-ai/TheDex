@@ -169,6 +169,16 @@ importers:
         specifier: ^4.23.15
         version: 4.23.15
 
+  tools/media-pack:
+    dependencies:
+      '@thedex/data-pipeline':
+        specifier: workspace:*
+        version: link:../data-pipeline
+    devDependencies:
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+
 packages:
 
   2g@1.0.1:

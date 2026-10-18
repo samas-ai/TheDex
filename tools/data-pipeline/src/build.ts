@@ -5,7 +5,15 @@ import path from 'node:path';
 import Database from 'better-sqlite3';
 import { gameSchemaDdl } from '@thedex/db/ddl';
 import { GAME_SCHEMA_VERSION } from '@thedex/db/game';
-import { CRIES_SHA, POKEAPI_SHA, REPO_ROOT, SPRITES_SHA } from './config';
+import {
+  CRIES_SHA,
+  MEDIA_PACKS,
+  mediaPackListingFile,
+  POKEAPI_SHA,
+  REPO_ROOT,
+  SPRITES_SHA,
+  type MediaPack,
+} from './config';
 import { BuildContext, type BuildOptions } from './context';
 import { CURATED_FILES, loadCurated } from './curated';
 import { derivePtBr, deriveSpeciesTags } from './derive/curated';
@@ -43,14 +51,18 @@ function sourceFiles(dir: string): string[] {
 
 /**
  * Deterministic data version: changes only when an input changes (PokeAPI SHA, @pkmn/dex,
- * curated JSON, schema/pipeline code, dedupe flag) — so rebuilding is idempotent and the
- * app recopies its asset exactly when the data changed.
+ * curated JSON, media pack listings, schema/pipeline code, dedupe flag) — so rebuilding is
+ * idempotent and the app recopies its asset exactly when the data changed.
  */
 export function computeDataVersion(options: BuildOptions): string {
   const hash = createHash('sha256');
   hash.update(`schema:${GAME_SCHEMA_VERSION}\npokeapi:${POKEAPI_SHA}\npkmn:${PKMN_VERSION}\n`);
   hash.update(`dedupe:${options.dedupeLearnsets ? 1 : 0}\n`);
   for (const file of CURATED_FILES) hash.update(readFileSync(path.join(options.curatedDir, file)));
+  for (const pack of Object.keys(MEDIA_PACKS) as MediaPack[]) {
+    const file = mediaPackListingFile(pack, options.mediaPackDir);
+    if (existsSync(file)) hash.update(readFileSync(file, 'utf8').replaceAll('\r\n', '\n'));
+  }
   for (const file of [...DATA_SOURCE_DIRS.flatMap(sourceFiles), ...DATA_SOURCE_FILES]) {
     hash.update(path.relative(REPO_ROOT, file).replaceAll('\\', '/'));
     hash.update(readFileSync(file, 'utf8').replaceAll('\r\n', '\n'));

@@ -1,4 +1,4 @@
-import type { MediaAsset } from '@thedex/db';
+import { CRY_AAC_STYLE, CRY_STYLE, type MediaAsset } from '@thedex/db';
 
 /** Path of a downloaded asset under the media root: `<style>/<variant>/<file>`. */
 export function localMediaPath(asset: Pick<MediaAsset, 'style' | 'variant' | 'path'>): string[] {
@@ -17,6 +17,11 @@ export function cryVariantFor(
   if (available.has(preferred)) return preferred;
   if (available.has('latest')) return 'latest';
   return available.has('legacy') ? 'legacy' : null;
+}
+
+/** Cry style a platform can decode: iOS has no Ogg decoder, so it gets the AAC pack. */
+export function cryStyleFor(os: string): typeof CRY_STYLE | typeof CRY_AAC_STYLE {
+  return os === 'ios' ? CRY_AAC_STYLE : CRY_STYLE;
 }
 
 /** `1.2 MB`-style size for the media settings. */

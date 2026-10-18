@@ -36,7 +36,7 @@ import {
   type GameContext,
 } from '@thedex/db';
 import { buildDatabase } from '../src/build';
-import { SPRITES_SHA } from '../src/config';
+import { MEDIA_PACKS, SPRITES_SHA } from '../src/config';
 import { openAppLikeConnection } from '../src/query-plans';
 import {
   writeFixtureCsvs,
@@ -54,11 +54,12 @@ beforeAll(async () => {
   tmp = mkdtempSync(path.join(os.tmpdir(), 'thedex-repos-'));
   writeFixtureCsvs(path.join(tmp, 'csv'));
   writeFixtureCurated(path.join(tmp, 'curated'));
-  writeFixtureMediaListing(path.join(tmp, 'media.json'));
+  writeFixtureMediaListing(path.join(tmp, 'media.json'), path.join(tmp, 'media-packs'));
   const report = buildDatabase({
     csvDir: path.join(tmp, 'csv'),
     curatedDir: path.join(tmp, 'curated'),
     mediaListingFile: path.join(tmp, 'media.json'),
+    mediaPackDir: path.join(tmp, 'media-packs'),
     outFile: path.join(tmp, 'data.db'),
     allowMissingCsv: true,
     analyze: false,
@@ -342,13 +343,13 @@ describe('encounters (RF02.7)', () => {
 describe('media (RNF02)', () => {
   it('maps pinned directory listings to Pokémon assets and download URLs', async () => {
     const sources = await getMediaSources(db);
-    expect(sources).toHaveLength(10);
+    expect(sources).toHaveLength(12);
     const official = sources.find((s) => s.style === 'official' && s.variant === 'shiny')!;
     expect(official.baseUrl).toBe(
       `https://raw.githubusercontent.com/PokeAPI/sprites/${SPRITES_SHA}/sprites/pokemon/other/official-artwork/shiny`,
     );
     const pikachu = await getPokemonMedia(db, 25);
-    expect(pikachu).toHaveLength(10);
+    expect(pikachu).toHaveLength(12);
     const shiny = pikachu.find((a) => a.style === 'official' && a.variant === 'shiny')!;
     expect(mediaUrl(official, shiny)).toMatch(/\/official-artwork\/shiny\/25\.png$/);
     expect(mediaCacheKey(shiny)).toBe('official/shiny/25');
@@ -360,6 +361,22 @@ describe('media (RNF02)', () => {
       '25.ogg',
       '10034.ogg',
       '10034.ogg',
+    ]);
+    // iOS cries: the same files transcoded to AAC, served from the TheDex-hosted pack.
+    const aac = sources.find((s) => s.style === 'cry-aac' && s.variant === 'legacy')!;
+    expect(aac).toEqual({
+      style: 'cry-aac',
+      variant: 'legacy',
+      baseUrl: `${MEDIA_PACKS['cries-aac'].baseUrl}/cries/pokemon/legacy`,
+      format: 'm4a',
+    });
+    expect((await listMediaAssets(db, ['cry-aac'])).map((a) => a.path)).toEqual([
+      '6.m4a',
+      '6.m4a',
+      '25.m4a',
+      '25.m4a',
+      '10034.m4a',
+      '10034.m4a',
     ]);
     expect(await getMediaPackSizes(db)).toContainEqual({ style: 'pixel', files: 6, bytes: 12000 });
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cryVariantFor, formatBytes, localMediaPath, runPool } from './media-paths';
+import { cryStyleFor, cryVariantFor, formatBytes, localMediaPath, runPool } from './media-paths';
 
 describe('media helpers', () => {
   it('places assets under style/variant', () => {
@@ -17,6 +17,12 @@ describe('media helpers', () => {
     expect(cryVariantFor(3, new Set(['latest']))).toBe('latest');
     expect(cryVariantFor(9, new Set(['legacy']))).toBe('legacy');
     expect(cryVariantFor(9, new Set())).toBeNull();
+  });
+
+  it('serves AAC cries on iOS and the .ogg ones elsewhere', () => {
+    expect(cryStyleFor('ios')).toBe('cry-aac');
+    expect(cryStyleFor('android')).toBe('cry');
+    expect(cryStyleFor('web')).toBe('cry');
   });
 
   it('formats sizes', () => {

@@ -17,6 +17,8 @@
     "data:build": "pnpm --filter @thedex/data-pipeline run build",
     "data:validate": "pnpm --filter @thedex/data-pipeline run validate",
     "bench:search": "pnpm --filter @thedex/data-pipeline run bench:search",
+    "media:pack": "pnpm --filter @thedex/media-pack run pack",
+    "media:verify": "pnpm --filter @thedex/media-pack run verify",
     "db:generate": "pnpm --filter @thedex/db run generate"
   },
   "devDependencies": {

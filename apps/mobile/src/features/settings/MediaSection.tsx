@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { CRY_STYLE, SPRITE_STYLES } from '@thedex/db';
+import { SPRITE_STYLES } from '@thedex/db';
 import { SPACING } from '@thedex/ui-tokens';
 import { useAsync } from '../../shared/hooks/useAsync';
 import { formatBytes } from '../../shared/media/media-paths';
@@ -24,9 +24,9 @@ export function MediaSection() {
     [media, running],
   );
 
-  const packStyles = media.canPlayCries ? [...SPRITE_STYLES, CRY_STYLE] : [...SPRITE_STYLES];
+  const packStyles = media.canPlayCries ? [...SPRITE_STYLES, media.cryStyle] : [...SPRITE_STYLES];
   const labelOf = (style: string) =>
-    style === CRY_STYLE
+    style === media.cryStyle
       ? t('settings.cries')
       : t(`settings.spriteStyles.${style as (typeof SPRITE_STYLES)[number]}`);
 

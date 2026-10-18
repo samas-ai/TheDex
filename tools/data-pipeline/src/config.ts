@@ -10,18 +10,38 @@ export const CRIES_SHA = 'b3a9044bb839b5e3152aaa536c7b463a0fcf0140';
 export const MEDIA_REPOS = { sprites: SPRITES_SHA, cries: CRIES_SHA } as const;
 export type MediaRepo = keyof typeof MEDIA_REPOS;
 
+/**
+ * Packs TheDex transcodes from a pinned upstream directory and hosts itself (`pnpm media:pack`,
+ * tools/media-pack). iOS cannot decode the `.ogg` cries, so they are re-encoded to AAC.
+ * `baseUrl` is the pack root at an immutable published revision; file names and sizes come
+ * from the committed listing (`mediaPackListingFile`).
+ */
+export const MEDIA_PACKS = {
+  'cries-aac': {
+    baseUrl:
+      'https://raw.githubusercontent.com/samas-ai/TheDex/ce01d56ba04c674f683a83c1447bb6e29cf201f5/cries-aac',
+  },
+} as const satisfies Record<string, { readonly baseUrl: string }>;
+export type MediaPack = keyof typeof MEDIA_PACKS;
+
 export interface MediaSourceConfig {
   readonly style: string;
   readonly variant: string;
   readonly repo: MediaRepo;
   /** Directory inside the repo; files are named `<pokemon id>.<format>`. */
   readonly dir: string;
-  readonly format: 'png' | 'gif' | 'ogg';
+  readonly format: 'png' | 'gif' | 'ogg' | 'm4a';
+  /**
+   * Hosted by TheDex: the files of `repo`/`dir` transcoded to `format` by tools/media-pack and
+   * published under `MEDIA_PACKS[pack].baseUrl` with the same directory layout.
+   */
+  readonly pack?: MediaPack;
 }
 
 /**
  * Media styles → repo directories. `3d` uses Showdown's animated GIFs (rendered from the 3D
- * models). Cries are `.ogg`, which iOS cannot play — see "Mídia" in CLAUDE.md for the plan.
+ * models). Cries are `.ogg` (Vorbis, some MP3), which iOS cannot play: `cry-aac` is the same
+ * set transcoded to AAC (`.m4a`), picked by the app on iOS.
  */
 export const MEDIA_SOURCES: readonly MediaSourceConfig[] = [
   {
@@ -76,10 +96,27 @@ export const MEDIA_SOURCES: readonly MediaSourceConfig[] = [
   },
   { style: 'cry', variant: 'latest', repo: 'cries', dir: 'cries/pokemon/latest', format: 'ogg' },
   { style: 'cry', variant: 'legacy', repo: 'cries', dir: 'cries/pokemon/legacy', format: 'ogg' },
+  {
+    style: 'cry-aac',
+    variant: 'latest',
+    repo: 'cries',
+    dir: 'cries/pokemon/latest',
+    format: 'm4a',
+    pack: 'cries-aac',
+  },
+  {
+    style: 'cry-aac',
+    variant: 'legacy',
+    repo: 'cries',
+    dir: 'cries/pokemon/legacy',
+    format: 'm4a',
+    pack: 'cries-aac',
+  },
 ];
 
-/** Immutable download prefix of a media directory at its pinned commit. */
-export function mediaBaseUrl(source: Pick<MediaSourceConfig, 'repo' | 'dir'>): string {
+/** Immutable download prefix of a media directory at its pinned commit (or pack revision). */
+export function mediaBaseUrl(source: Pick<MediaSourceConfig, 'repo' | 'dir' | 'pack'>): string {
+  if (source.pack) return `${MEDIA_PACKS[source.pack].baseUrl}/${source.dir}`;
   return `https://raw.githubusercontent.com/PokeAPI/${source.repo}/${MEDIA_REPOS[source.repo]}/${source.dir}`;
 }
 
@@ -93,6 +130,11 @@ export const MEDIA_LISTING_FILE = path.join(
   SOURCES_DIR,
   `media-${SPRITES_SHA.slice(0, 12)}-${CRIES_SHA.slice(0, 12)}.json`,
 );
+/** Committed listings of the published media packs, written by `pnpm media:pack`. */
+export const MEDIA_PACK_DIR = path.join(REPO_ROOT, 'data', 'generated', 'media-packs');
+export function mediaPackListingFile(pack: MediaPack, dir: string = MEDIA_PACK_DIR): string {
+  return path.join(dir, `${pack}.json`);
+}
 export const DIST_DIR = path.join(PIPELINE_ROOT, 'dist');
 export const DATA_DB_FILE = 'thedex-data.db';
 export const MOBILE_DB_DIR = path.join(REPO_ROOT, 'apps', 'mobile', 'assets', 'db');

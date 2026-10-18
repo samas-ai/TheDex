@@ -11,6 +11,8 @@ export interface BuildOptions {
   readonly curatedDir: string;
   /** Media directory listing (see media-listing.ts); required unless `allowMissingCsv`. */
   readonly mediaListingFile?: string;
+  /** Directory with the media pack listings (default: data/generated/media-packs). */
+  readonly mediaPackDir?: string;
   /** Output .db path. */
   readonly outFile: string;
   /** Tolerate missing CSV files (test fixtures ship a subset). */

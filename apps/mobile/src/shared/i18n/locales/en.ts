@@ -75,7 +75,7 @@ export const en = {
     normal: 'Normal',
     playCry: 'Play cry',
     cryUnavailable: 'Cry unavailable',
-    cryIosPending: 'Cries need the AAC pack on iOS (planned).',
+    cryIosPending: 'This data version has no cries for this platform.',
     national: 'National #{{number}}',
     regional: 'Regional #{{number}}',
     tabs: {

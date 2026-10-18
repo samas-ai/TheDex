@@ -17,6 +17,15 @@ export function listingKey(repo: string, dir: string): string {
   return `${repo}/${dir}`;
 }
 
+/** Listing as JSON with one file per line (committed pack listings stay diffable). */
+export function formatMediaListing(listing: MediaListing): string {
+  const dirs = Object.entries(listing.dirs).map(
+    ([key, entries]) =>
+      `    ${JSON.stringify(key)}: [\n${entries.map((entry) => `      ${JSON.stringify(entry)}`).join(',\n')}\n    ]`,
+  );
+  return `{\n  "repos": ${JSON.stringify(listing.repos)},\n  "dirs": {\n${dirs.join(',\n')}\n  }\n}\n`;
+}
+
 /** Reads and validates a listing file; null when it does not exist. */
 export function readMediaListing(file: string): MediaListing | null {
   if (!existsSync(file)) return null;

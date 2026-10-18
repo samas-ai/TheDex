@@ -6,6 +6,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { MEDIA_REPOS, MEDIA_SOURCES } from '../../src/config';
+import { formatMediaListing, type MediaListing } from '../../src/media-listing';
 
 type Row = Record<string, string | number | null>;
 
@@ -733,9 +734,13 @@ export function writeFixtureCsvs(dir: string): void {
   }
 }
 
-/** Media listing for the pinned commits: every source dir lists Pikachu, Charizard and a non-Pokémon file. */
-export function writeFixtureMediaListing(file: string): void {
+/**
+ * Upstream listing (`file`) plus the committed pack listings (`packDir`): every source lists
+ * Charizard, Pikachu, Mega Charizard X (except 3D) and a non-Pokémon file.
+ */
+export function writeFixtureMediaListing(file: string, packDir: string): void {
   const dirs: Record<string, [string, number][]> = {};
+  const packs: Record<string, MediaListing> = {};
   for (const source of MEDIA_SOURCES) {
     const entries: [string, number][] = [
       [`25.${source.format}`, 1000],
@@ -744,10 +749,21 @@ export function writeFixtureMediaListing(file: string): void {
     ];
     // The Mega has no 3D (Showdown) sprite at the pinned commit.
     if (source.style !== '3d') entries.push([`10034.${source.format}`, 3000]);
-    dirs[`${source.repo}/${source.dir}`] = entries;
+    const key = `${source.repo}/${source.dir}`;
+    if (source.pack) {
+      const pack = (packs[source.pack] ??= { repos: {}, dirs: {} });
+      pack.repos[source.repo] = MEDIA_REPOS[source.repo];
+      pack.dirs[key] = entries;
+    } else {
+      dirs[key] = entries;
+    }
   }
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, JSON.stringify({ repos: { ...MEDIA_REPOS }, dirs }));
+  mkdirSync(packDir, { recursive: true });
+  for (const [pack, listing] of Object.entries(packs)) {
+    writeFileSync(path.join(packDir, `${pack}.json`), formatMediaListing(listing));
+  }
 }
 
 /** Curated files matching the fixture subset. */

@@ -77,7 +77,7 @@ export const ptBR: Translations = {
     normal: 'Normal',
     playCry: 'Ouvir grito',
     cryUnavailable: 'Grito indisponível',
-    cryIosPending: 'No iOS, os gritos dependem do pacote AAC (planejado).',
+    cryIosPending: 'Esta versão dos dados não tem gritos para esta plataforma.',
     national: 'Nacional #{{number}}',
     regional: 'Regional #{{number}}',
     tabs: {

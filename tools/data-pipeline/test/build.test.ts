@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import Database from 'better-sqlite3';
@@ -13,6 +13,7 @@ import {
   searchQuery,
 } from '@thedex/db';
 import { buildDatabase } from '../src/build';
+import { CRIES_SHA } from '../src/config';
 import type { BuildReport } from '../src/finalize';
 import { checkHotQueryPlans } from '../src/query-plans';
 import {
@@ -32,6 +33,7 @@ function build(outFile: string, dedupeLearnsets: boolean) {
     csvDir: path.join(tmp, 'csv'),
     curatedDir: path.join(tmp, 'curated'),
     mediaListingFile: path.join(tmp, 'media.json'),
+    mediaPackDir: path.join(tmp, 'media-packs'),
     outFile,
     allowMissingCsv: true,
     analyze: false,
@@ -44,7 +46,7 @@ beforeAll(() => {
   tmp = mkdtempSync(path.join(os.tmpdir(), 'thedex-pipeline-'));
   writeFixtureCsvs(path.join(tmp, 'csv'));
   writeFixtureCurated(path.join(tmp, 'curated'));
-  writeFixtureMediaListing(path.join(tmp, 'media.json'));
+  writeFixtureMediaListing(path.join(tmp, 'media.json'), path.join(tmp, 'media-packs'));
   report = build(path.join(tmp, 'data.db'), false);
   dedupedReport = build(path.join(tmp, 'data-deduped.db'), true);
   sqlite = new Database(report.file, { readonly: true });
@@ -105,6 +107,25 @@ describe('database integrity', () => {
     expect(report.sizes?.some((s) => s.table === 'pokemon_moves')).toBe(true);
     expect(report.learnsetDedupePotential).toBe(1);
     expect(dedupedReport.learnsetDedupePotential).toBe(0);
+  });
+
+  it('rejects a media pack transcoded from another cries commit', () => {
+    const packDir = path.join(tmp, 'stale-packs');
+    writeFixtureMediaListing(path.join(tmp, 'stale-media.json'), packDir);
+    const packFile = path.join(packDir, 'cries-aac.json');
+    writeFileSync(packFile, readFileSync(packFile, 'utf8').replace(CRIES_SHA, '0'.repeat(40)));
+    expect(() =>
+      buildDatabase({
+        csvDir: path.join(tmp, 'csv'),
+        curatedDir: path.join(tmp, 'curated'),
+        mediaListingFile: path.join(tmp, 'stale-media.json'),
+        mediaPackDir: packDir,
+        outFile: path.join(tmp, 'stale.db'),
+        allowMissingCsv: true,
+        analyze: false,
+        log: () => {},
+      }),
+    ).toThrow(/cries-aac was built from cries@0{40}/);
   });
 });
 

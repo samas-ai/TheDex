@@ -18,7 +18,7 @@ import {
   searchQuery,
   type EvolutionMethod,
 } from '@thedex/db';
-import { CRIES_SHA, SPRITES_SHA } from './config';
+import { mediaBaseUrl, MEDIA_SOURCES } from './config';
 import { readCsv } from './csv';
 import { PT_BR_REQUIRED } from './derive/curated';
 import { checkHotQueryPlans, openAppLikeConnection } from './query-plans';
@@ -303,7 +303,7 @@ export async function validateDatabase(options: ValidateOptions): Promise<Valida
 
     // --- Phase 2: media manifest, form kinds, profile repositories ------------------------
     const mediaMinimums: [string, string, number][] = [
-      ['media sources', 'SELECT count(*) FROM media_sources', 10],
+      ['media sources', 'SELECT count(*) FROM media_sources', MEDIA_SOURCES.length],
       [
         'official artwork files',
         `SELECT count(*) FROM media_assets WHERE style = 'official' AND variant = 'default'`,
@@ -314,6 +314,11 @@ export async function validateDatabase(options: ValidateOptions): Promise<Valida
         `SELECT count(*) FROM media_assets WHERE style = 'cry' AND variant = 'latest'`,
         1300,
       ],
+      [
+        'iOS (AAC) cry files',
+        `SELECT count(*) FROM media_assets WHERE style = 'cry-aac' AND variant = 'latest'`,
+        1300,
+      ],
     ];
     for (const [name, sql, minimum] of mediaMinimums) {
       const count = scalar(db, sql);
@@ -321,16 +326,52 @@ export async function validateDatabase(options: ValidateOptions): Promise<Valida
     }
     const formKind = (identifier: string) =>
       scalar<string>(db, 'SELECT form_kind FROM pokemon_forms WHERE identifier = ?', identifier);
+    const baseUrls = db
+      .prepare('SELECT style, variant, base_url AS baseUrl FROM media_sources')
+      .all() as { style: string; variant: string; baseUrl: string }[];
+    const unpinned = MEDIA_SOURCES.filter(
+      (source) =>
+        baseUrls.find((row) => row.style === source.style && row.variant === source.variant)
+          ?.baseUrl !== mediaBaseUrl(source),
+    ).map((source) => `${source.style}/${source.variant}`);
+    check(
+      'Every media source matches its configured URL',
+      unpinned.length === 0 && baseUrls.length === MEDIA_SOURCES.length,
+      unpinned.join(', '),
+    );
+    const mutable = baseUrls.filter((row) => !/\/[0-9a-f]{40}\//.test(row.baseUrl));
+    check(
+      'Every media URL is pinned to a commit (immutable)',
+      mutable.length === 0,
+      mutable.map((row) => `${row.style}/${row.variant}: ${row.baseUrl}`).join(', '),
+    );
+    const crySets = (a: string, b: string) =>
+      scalar(
+        db,
+        `SELECT count(*) FROM media_assets x WHERE x.style = ? AND NOT EXISTS (
+           SELECT 1 FROM media_assets y
+           WHERE y.style = ? AND y.variant = x.variant AND y.pokemon_id = x.pokemon_id)`,
+        a,
+        b,
+      );
     const phase2Facts: [string, unknown, unknown][] = [
+      ['Every .ogg cry has an AAC (iOS) counterpart', crySets('cry', 'cry-aac'), 0],
+      ['Every AAC (iOS) cry has an .ogg counterpart', crySets('cry-aac', 'cry'), 0],
       [
-        'Every media source is pinned to the configured commits',
-        scalar(
+        'Pikachu has a legacy AAC cry',
+        scalar<string>(
           db,
-          `SELECT count(*) FROM media_sources WHERE instr(base_url, ?) = 0 AND instr(base_url, ?) = 0`,
-          `/${SPRITES_SHA}/`,
-          `/${CRIES_SHA}/`,
+          `SELECT path FROM media_assets WHERE pokemon_id = 25 AND style = 'cry-aac' AND variant = 'legacy'`,
         ),
-        0,
+        '25.m4a',
+      ],
+      [
+        'AAC cries are served as m4a',
+        scalar<string>(
+          db,
+          `SELECT group_concat(DISTINCT format) FROM media_sources WHERE style = 'cry-aac'`,
+        ),
+        'm4a',
       ],
       [
         'Pikachu has a shiny official artwork',

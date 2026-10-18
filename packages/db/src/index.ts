@@ -33,6 +33,7 @@ export {
   type PokemonLearnset,
 } from './repos/learnset';
 export {
+  CRY_AAC_STYLE,
   CRY_STYLE,
   deleteMediaCacheEntries,
   getMediaCacheEntry,

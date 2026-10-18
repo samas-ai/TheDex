@@ -93,7 +93,8 @@ async function fetchMediaListing(): Promise<void> {
   };
 
   const dirs: MediaListing['dirs'] = {};
-  for (const source of MEDIA_SOURCES) {
+  // Packs (cry-aac) are listed by `pnpm media:pack`, not by the upstream repos.
+  for (const source of MEDIA_SOURCES.filter((s) => !s.pack)) {
     let entries = await tree(source.repo, MEDIA_REPOS[source.repo]);
     for (const segment of source.dir.split('/')) {
       const next = entries.find((entry) => entry.path === segment && entry.type === 'tree');

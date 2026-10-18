@@ -7,8 +7,10 @@ import type { AnySQLiteDatabase } from '../types';
 /** Sprite styles the user can pick (`settings.sprite_style`, RNF04). */
 export const SPRITE_STYLES = ['official', 'pixel', '3d', 'home'] as const;
 export type SpriteStyle = (typeof SPRITE_STYLES)[number];
-/** Media style of Pokémon cries. */
+/** Media style of Pokémon cries (`.ogg`: Vorbis or MP3). */
 export const CRY_STYLE = 'cry';
+/** The same cries transcoded to AAC (`.m4a`) for iOS, which cannot decode `.ogg`. */
+export const CRY_AAC_STYLE = 'cry-aac';
 
 export interface MediaSource {
   readonly style: string;

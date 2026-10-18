@@ -22,19 +22,21 @@ Requisitos: Node ≥ 24 LTS e pnpm 10 via corepack. Rode `corepack enable`; sem 
 
 O `better-sqlite3` ≥ 13 já traz binários prontos. Ele fica em `ignoredBuiltDependencies` para o pnpm não tentar compilá-lo, o que exigiria o Visual Studio.
 
-| Comando                                        | O que faz                                                                                      |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `pnpm install`                                 | Instala o workspace (`node-linker=hoisted`)                                                    |
-| `pnpm data:fetch`                              | Baixa os CSVs da PokeAPI e a listagem de sprites/cries (SHAs fixados) para `.cache/sources/`   |
-| `pnpm data:build`                              | Gera `tools/data-pipeline/dist/thedex-data.db` + `manifest.json` e copia para o app            |
-| `pnpm data:validate`                           | Integridade, FKs, contagens, fatos pontuais, teste cruzado com o engine e orçamento de tamanho |
-| `pnpm bench:search`                            | Benchmark de busca e da lista da Pokédex contra o `.db` real (p95 < 100 ms)                    |
-| `pnpm test`                                    | Vitest em todos os projetos, inclusive a lógica pura do app (o engine exige 100% de cobertura) |
-| `pnpm typecheck` / `pnpm lint` / `pnpm format` | Qualidade                                                                                      |
-| `pnpm db:generate`                             | Gera migration do user DB (drizzle-kit) e o bundle `migrations.generated.ts`                   |
-| `pnpm --filter @thedex/mobile start`           | Metro/Expo (rode `pnpm data:build` antes: o app embarca o `.db`)                               |
-| `npx expo install <pkg>` (em `apps/mobile`)    | Única forma de adicionar dependências ao app (resolve versões compatíveis com o SDK)           |
-| `npx expo export --platform android`           | Gera o bundle JS + assets (verifica a resolução do monorepo sem aparelho)                      |
+| Comando                                         | O que faz                                                                                      |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `pnpm install`                                  | Instala o workspace (`node-linker=hoisted`)                                                    |
+| `pnpm data:fetch`                               | Baixa os CSVs da PokeAPI e a listagem de sprites/cries (SHAs fixados) para `.cache/sources/`   |
+| `pnpm data:build`                               | Gera `tools/data-pipeline/dist/thedex-data.db` + `manifest.json` e copia para o app            |
+| `pnpm data:validate`                            | Integridade, FKs, contagens, fatos pontuais, teste cruzado com o engine e orçamento de tamanho |
+| `pnpm bench:search`                             | Benchmark de busca e da lista da Pokédex contra o `.db` real (p95 < 100 ms)                    |
+| `pnpm media:pack`                               | Gera o pacote de gritos AAC do iOS (`cries-aac`, exige ffmpeg) e a listagem versionada         |
+| `pnpm media:verify`                             | Confere o pacote publicado (cada arquivo na URL fixada, com o tamanho listado)                 |
+| `pnpm test`                                     | Vitest em todos os projetos, inclusive a lógica pura do app (o engine exige 100% de cobertura) |
+| `pnpm typecheck` / `pnpm lint` / `pnpm format`  | Qualidade                                                                                      |
+| `pnpm db:generate`                              | Gera migration do user DB (drizzle-kit) e o bundle `migrations.generated.ts`                   |
+| `pnpm --filter @thedex/mobile start`            | Metro/Expo (rode `pnpm data:build` antes: o app embarca o `.db`)                               |
+| `npx expo install <pkg>` (em `apps/mobile`)     | Única forma de adicionar dependências ao app (resolve versões compatíveis com o SDK)           |
+| `npx expo export --platform android` (ou `ios`) | Gera o bundle JS + assets (verifica a resolução do monorepo sem aparelho)                      |
 
 ---
 
@@ -46,10 +48,12 @@ packages/engine/        @thedex/engine        mecânicas puras (TS, zero deps, z
 packages/db/            @thedex/db            schema Drizzle (game + user), DDL, repositórios, busca
 packages/ui-tokens/     @thedex/ui-tokens     só tokens: paleta dos 18 tipos, temas, espaçamentos
 tools/data-pipeline/    @thedex/data-pipeline CSV PokeAPI + @pkmn/dex + curados → thedex-data.db
+tools/media-pack/       @thedex/media-pack    gritos .ogg → pacote AAC do iOS (ffmpeg), publicado à parte
 data/curated/           JSONs curados versionados (jogos, tags, pt-BR, aliases, overrides)
+data/generated/         listagens geradas e versionadas (media-packs/cries-aac.json)
 ```
 
-**Dependências permitidas:** `engine` ← `db` ← `mobile` e `ui-tokens` ← `mobile`. O `data-pipeline` depende de `db` e `engine`. O engine e o `ui-tokens` não importam nada do monorepo (o `ui-tokens` repete a lista dos 18 tipos para continuar sem dependências), e a UI nunca importa `better-sqlite3` nem o pipeline.
+**Dependências permitidas:** `engine` ← `db` ← `mobile` e `ui-tokens` ← `mobile`. O `data-pipeline` depende de `db` e `engine`, e o `media-pack` depende do `data-pipeline` (config e formato da listagem). O engine e o `ui-tokens` não importam nada do monorepo (o `ui-tokens` repete a lista dos 18 tipos para continuar sem dependências), e a UI nunca importa `better-sqlite3` nem o pipeline.
 
 **Pacotes internos não têm build.** O `package.json` exporta `./src/index.ts`, e Metro, Vitest e tsx consomem o TypeScript direto.
 
@@ -67,7 +71,7 @@ Em runtime o app abre o user DB e faz `ATTACH` do data DB. Os nomes de tabela n�
 
 O bundle do app carrega um `DATA_VERSION` (`packages/db/src/generated/data-manifest.ts`, gerado pelo pipeline). No boot (`apps/mobile/src/shared/db/bootstrap.ts`), se ele diferir de `meta.data_version` do banco instalado, o asset é recopiado.
 
-O `DATA_VERSION` é **determinístico**: é um hash do SHA da PokeAPI, da versão do `@pkmn/dex`, dos JSONs curados e do código do schema/pipeline. Rebuild sem mudança de entrada gera a mesma versão. Depois de mexer no pipeline ou no schema, rode `pnpm data:build` e commite o `data-manifest.ts` atualizado.
+O `DATA_VERSION` é **determinístico**: é um hash do SHA da PokeAPI, da versão do `@pkmn/dex`, dos JSONs curados, das listagens dos pacotes de mídia e do código do schema/pipeline. Rebuild sem mudança de entrada gera a mesma versão. Depois de mexer no pipeline ou no schema, rode `pnpm data:build` e commite o `data-manifest.ts` atualizado.
 
 ### Pipeline no build (o "seeding" do RNF01)
 
@@ -76,6 +80,7 @@ Etapas: `fetch → load → derive → finalize → validate`. As fontes são fi
 1. **PokeAPI CSV** (`data/v2/csv`), no SHA em `tools/data-pipeline/src/config.ts`.
 2. **`@pkmn/dex`** (dados do Pokémon Showdown, MIT), na versão fixada no `package.json`. Fornece IDs do Showdown, flags de golpe, Z/Max power, mudanças de forma e o Special da Gen 1.
 3. **`data/curated/*.json`**, que cobre as lacunas da PokeAPI.
+4. **`data/generated/media-packs/*.json`**: listagem dos pacotes de mídia que o próprio TheDex publica (ver "Mídia").
 
 ### Histórico materializado
 
@@ -189,43 +194,44 @@ No app, o `GameProvider` monta o contexto a partir de `settings.game_id` (padrã
 
 ## Fontes de dados, lacunas e orçamento
 
-| Lacuna na PokeAPI                               | Tratamento                                                                        |
-| ----------------------------------------------- | --------------------------------------------------------------------------------- |
-| pt-BR sem textos                                | `data/curated/i18n-pt-BR.json` + fallback `en`                                    |
-| Learnsets do Legends: Z-A (VG 30–31)            | Ausentes no SHA fixado; aguardar a PokeAPI ou curar                               |
-| Learnsets próprios das DLCs (VG 21, 22, 26, 27) | Ausentes: os golpes ficam no version group base; o `GameContext` já une os VGs    |
-| Localização de itens (RF05.2)                   | `item_locations` curada (futuro)                                                  |
-| Efeito fora de batalha das habilidades          | `ability_prose_i18n.overworld_effect` (curado, futuro)                            |
-| Tags inicial / Ultra Beast / Paradoxo / fóssil  | `data/curated/species-tags.json`                                                  |
-| IDs do Showdown que fogem da regra              | `data/curated/ps-id-overrides.json`                                               |
-| Encontros de SV, Legends: Arceus, BDSP, Z-A     | Schema pronto; curadoria futura. A aba "Locais" avisa que faltam os dados         |
-| Flavor text de SV e de outros jogos recentes    | O perfil mostra a entrada mais recente de outro jogo, sinalizada                  |
-| Cries em `.ogg` (o iOS não toca)                | Android/web tocam `.ogg`; no iOS o grito fica desativado até o pacote AAC (Mídia) |
-| Sprites (repositório de ~25 GB)                 | Sob demanda, a partir de commits fixados; `media_assets` gerado no build          |
+| Lacuna na PokeAPI                               | Tratamento                                                                     |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ |
+| pt-BR sem textos                                | `data/curated/i18n-pt-BR.json` + fallback `en`                                 |
+| Learnsets do Legends: Z-A (VG 30–31)            | Ausentes no SHA fixado; aguardar a PokeAPI ou curar                            |
+| Learnsets próprios das DLCs (VG 21, 22, 26, 27) | Ausentes: os golpes ficam no version group base; o `GameContext` já une os VGs |
+| Localização de itens (RF05.2)                   | `item_locations` curada (futuro)                                               |
+| Efeito fora de batalha das habilidades          | `ability_prose_i18n.overworld_effect` (curado, futuro)                         |
+| Tags inicial / Ultra Beast / Paradoxo / fóssil  | `data/curated/species-tags.json`                                               |
+| IDs do Showdown que fogem da regra              | `data/curated/ps-id-overrides.json`                                            |
+| Encontros de SV, Legends: Arceus, BDSP, Z-A     | Schema pronto; curadoria futura. A aba "Locais" avisa que faltam os dados      |
+| Flavor text de SV e de outros jogos recentes    | O perfil mostra a entrada mais recente de outro jogo, sinalizada               |
+| Cries em `.ogg` (o iOS não toca)                | Android/web tocam `.ogg`; o iOS toca o pacote AAC `cry-aac` (Mídia)            |
+| Sprites (repositório de ~25 GB)                 | Sob demanda, a partir de commits fixados; `media_assets` gerado no build       |
 
 **Orçamento de tamanho do `thedex-data.db`:** alerta em 50 MB, falha em 60 MB.
 
 - O `finalize` imprime o peso por tabela e índice (via `dbstat`) e o grava em `dist/manifest.json`, com a `pokemon_moves` em destaque.
 - A `pokemon_moves` é sempre `WITHOUT ROWID`.
 - **Deduplicação por jogo** (`--dedupe-learnsets`): linhas idênticas entre os version groups de um mesmo jogo ficam só no version group base, e o repo faz a união pelos `versionGroupIds`. Um teste de equivalência protege essa troca. Ela é ligada automaticamente só se o banco passar de 60 MB e houver o que remover. O `manifest.json` informa o potencial em `learnsetDedupePotential`.
-- **Estado no SHA fixado:** 52,8 MB (alerta ativo). `pokemon_moves` ocupa 18,9 MB (36%, sendo 8,8 MB de índices), `flavor_texts` 9,2 MB, `encounters` 5,9 MB e busca (termos + FTS) 7,4 MB. O manifesto de mídia (`media_assets`, ~12,6 mil arquivos) soma 0,4 MB. O potencial da deduplicação é 0, porque a PokeAPI não tem learnsets de DLC.
+- **Estado no SHA fixado:** 52,9 MB (alerta ativo). `pokemon_moves` ocupa 18,9 MB (36%, sendo 8,8 MB de índices), `flavor_texts` 9,2 MB, `encounters` 5,9 MB e busca (termos + FTS) 7,4 MB. O manifesto de mídia (`media_assets`, ~14,6 mil arquivos) soma 0,45 MB. O potencial da deduplicação é 0, porque a PokeAPI não tem learnsets de DLC.
 - **Próximas alavancas, se precisar:** remover `es-419`/`cs` dos textos longos, ou deixar o índice `(move_id, version_group_id)` como tabela inversa compacta.
 
-**Propriedade intelectual:** os repositórios de sprites e cries são CC0, mas o conteúdo é © The Pokémon Company. Faça uma revisão jurídica antes de publicar nas lojas.
+**Propriedade intelectual:** os repositórios de sprites e cries são CC0, mas o conteúdo é © The Pokémon Company. O pacote `cry-aac` redistribui esses sons a partir do repositório público do TheDex. Faça uma revisão jurídica antes de publicar nas lojas.
 
 ### Mídia (RNF02)
 
 - **Commits fixados:** `SPRITES_SHA` e `CRIES_SHA` em `tools/data-pipeline/src/config.ts`, junto com `MEDIA_SOURCES` (estilo/variante → diretório do repositório). O `data:fetch` lista esses diretórios pela API de árvores do GitHub (~16 requisições, abaixo do limite anônimo de 60/h; `GITHUB_TOKEN` aumenta o limite) e grava `.cache/sources/media-<sha>-<sha>.json`. O build não baixa nenhum arquivo de mídia.
 - **No banco:** `media_sources(style, variant, base_url, format)` guarda o prefixo imutável da URL (com o SHA), e `media_assets(pokemon_id, style, variant, path, bytes)` lista os arquivos que existem. URL = `base_url/path`. `meta` registra `source_sprites_sha` e `source_cries_sha`.
-- **Estilos:** `official` (official-artwork), `pixel` (sprites/pokemon), `3d` (GIFs animados do Showdown, renderizados dos modelos 3D), `home`, cada um com `default` e `shiny`; `cry` com `latest` e `legacy`. Pacotes completos: arte oficial ~344 MB, HOME ~320 MB, 3D ~238 MB, pixel ~3 MB, gritos ~27 MB.
+- **Estilos:** `official` (official-artwork), `pixel` (sprites/pokemon), `3d` (GIFs animados do Showdown, renderizados dos modelos 3D), `home`, cada um com `default` e `shiny`; `cry` e `cry-aac` com `latest` e `legacy`. Pacotes completos: arte oficial ~344 MB, HOME ~320 MB, 3D ~238 MB, pixel ~3 MB, gritos ~27 MB (`.ogg`) ou ~20 MB (AAC).
 - **`MediaService`** (`apps/mobile/src/shared/media/`): baixa sob demanda com `File.downloadFileAsync` para `Paths.document/media/<style>/<variant>/` (o SO não limpa), registra em `media_cache` do user DB e mantém um cache em memória da sessão. Sem rede e sem cache, devolve `null` e a UI mostra um placeholder; falhas só são tentadas de novo após 30 s. "Baixar todos os pacotes" e "Apagar mídia baixada" ficam em Configurações.
 - **Listas usam `pixel`** (~600 B por sprite), qualquer que seja o estilo global; o estilo escolhido vale no perfil e na árvore de evolução.
 - **Gritos:** jogos da Gen 1–5 tocam o `legacy` (original), os demais o `latest`, via expo-audio.
-- **Plano de transcodificação dos gritos (iOS):** o iOS não decodifica Ogg Vorbis. Até lá, `MediaService.canPlayCries` é `false` no iOS e o botão aparece desativado. O plano:
-  1. um script `tools/media-pack` baixa `cries/pokemon/{latest,legacy}` no `CRIES_SHA` e converte com ffmpeg (`-c:a aac -b:a 64k`, `.m4a`, ~1,5× o tamanho do `.ogg`);
-  2. o pacote é publicado como asset de um release versionado do TheDex (URL imutável);
-  3. o pipeline ganha as fontes `cry-aac/latest` e `cry-aac/legacy` em `MEDIA_SOURCES`, com `format = 'm4a'` e a listagem do release;
-  4. o `MediaService` passa a escolher `cry-aac` no iOS e `cry` nos demais, sem mudar a UI.
+- **Gritos no iOS (`cry-aac`):** o iOS não decodifica os `.ogg` do PokeAPI/cries (Vorbis; vários são MP3 com extensão `.ogg`). O `MediaService.cryStyle` (`cryStyleFor`, em `media-paths.ts`) escolhe `cry-aac` no iOS e `cry` nos demais; `canPlayCries` só é `false` se o data DB não tiver as fontes da plataforma. A UI não sabe qual formato toca.
+  1. `pnpm media:pack` (`tools/media-pack`) lê a listagem do `data:fetch`, baixa `cries/pokemon/{latest,legacy}` no `CRIES_SHA` (cache em `.cache/media-pack/`) e converte com ffmpeg: AAC-LC 64 kbit/s em `.m4a`, sem metadados e com `+bitexact` (mesmo ffmpeg = mesmos bytes). As taxas que o AAC não aceita (10 512 Hz dos `legacy`) viram 11 025 Hz. Resultado: 2.024 arquivos, ~20 MB (0,72× os `.ogg`).
+  2. A saída fica em `tools/media-pack/dist/cries-aac/`, já na estrutura publicada (`cries/pokemon/<variante>/<id>.m4a`, `README.md` com a origem e o comando, `listing.json`). A mesma listagem vai para `data/generated/media-packs/cries-aac.json` (versionada), no formato do `data:fetch`, com `repos.cries` = o `CRIES_SHA` de origem.
+  3. **Publicação:** branch `media/cries-aac` do próprio TheDex, sem histórico em comum com a `main`. `MEDIA_PACKS['cries-aac'].baseUrl` em `config.ts` aponta para `raw.githubusercontent.com/samas-ai/TheDex/<sha do commit>/cries-aac`. **Nunca apague nem reescreva essa branch:** versões antigas do app baixam pelos SHAs antigos. Uma versão nova do pacote entra como commit novo por cima. Depois, atualize o `baseUrl`, rode `pnpm media:verify` e `pnpm data:build`, e commite a listagem junto.
+  4. O pipeline lê a listagem versionada para as fontes com `pack` em `MEDIA_SOURCES` (`cry-aac/latest` e `cry-aac/legacy`, `format = 'm4a'`). O build falha se o pacote foi gerado de outro `CRIES_SHA`; ao mudar o `CRIES_SHA`, gere e publique o pacote de novo. O `data:validate` confere que todo grito `.ogg` tem par AAC (e vice-versa) e que toda URL de mídia está fixada num commit.
+  5. Ainda não foi tocado num iPhone de verdade. O bundle iOS compila (`npx expo export --platform ios`), e um arquivo publicado foi conferido com ffprobe (AAC-LC, mono).
 
 ---
 

@@ -7,6 +7,7 @@ import {
   DIST_DIR,
   GENERATED_MANIFEST_TS,
   MEDIA_LISTING_FILE,
+  MEDIA_PACK_DIR,
   MOBILE_DB_DIR,
   POKEAPI_CSV_DIR,
   SIZE_FAIL_BYTES,
@@ -52,6 +53,7 @@ const options = {
   csvDir: POKEAPI_CSV_DIR,
   curatedDir: CURATED_DIR,
   mediaListingFile: MEDIA_LISTING_FILE,
+  mediaPackDir: MEDIA_PACK_DIR,
   outFile: path.join(DIST_DIR, DATA_DB_FILE),
   dedupeLearnsets: process.argv.includes('--dedupe-learnsets'),
 };

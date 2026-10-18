@@ -1,7 +1,6 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 import {
-  CRY_STYLE,
   deleteMediaCacheEntries,
   getMediaCacheEntry,
   getMediaCacheStats,
@@ -20,7 +19,7 @@ import {
   type MediaPackSize,
   type MediaSource,
 } from '@thedex/db';
-import { cryVariantFor, localMediaPath, runPool } from './media-paths';
+import { cryStyleFor, cryVariantFor, localMediaPath, runPool } from './media-paths';
 
 const RETRY_AFTER_MS = 30_000;
 
@@ -32,9 +31,10 @@ export interface DownloadProgress {
 
 /**
  * The only way the app gets sprites and cries (RNF02). Files are downloaded on demand from the
- * pinned PokeAPI/sprites and PokeAPI/cries commits (URLs come from media_sources in the game
- * DB, never from code), stored under the document directory (not purged by the OS) and
- * tracked in thedex-user.db `media_cache`. Offline + not cached = null (placeholder UI).
+ * pinned PokeAPI/sprites and PokeAPI/cries commits, or the AAC cry pack on iOS (URLs come from
+ * media_sources in the game DB, never from code), stored under the document directory (not
+ * purged by the OS) and tracked in thedex-user.db `media_cache`. Offline + not cached = null
+ * (placeholder UI).
  */
 export class MediaService {
   /** Resolved local URIs of this session (avoids a DB round-trip per list row). */
@@ -55,11 +55,14 @@ export class MediaService {
   }
 
   /**
-   * iOS cannot decode the `.ogg` cries of PokeAPI/cries. Until the AAC pack exists (see
-   * CLAUDE.md, "Mídia"), cries are Android/web only.
+   * Cry style of this platform: iOS cannot decode the `.ogg` cries of PokeAPI/cries, so it
+   * plays the AAC pack (`cry-aac`) TheDex transcodes and hosts (CLAUDE.md, "Mídia").
    */
+  readonly cryStyle = cryStyleFor(Platform.OS);
+
+  /** False only with a data DB that lacks this platform's cry sources. */
   get canPlayCries(): boolean {
-    return Platform.OS !== 'ios';
+    return [...this.sources.values()].some((source) => source.style === this.cryStyle);
   }
 
   /** Assets of a variety, keyed `style/variant`. */
@@ -87,10 +90,10 @@ export class MediaService {
     if (!this.canPlayCries) return null;
     const assets = await this.assetsOf(pokemonId);
     const available = new Set(
-      [...assets.values()].filter((a) => a.style === CRY_STYLE).map((a) => a.variant),
+      [...assets.values()].filter((a) => a.style === this.cryStyle).map((a) => a.variant),
     );
     const variant = cryVariantFor(generationId, available);
-    const asset = variant ? assets.get(`${CRY_STYLE}/${variant}`) : undefined;
+    const asset = variant ? assets.get(`${this.cryStyle}/${variant}`) : undefined;
     return asset ? this.resolve(asset) : null;
   }
 
