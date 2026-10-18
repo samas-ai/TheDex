@@ -1,0 +1,29 @@
+{
+  "name": "@thedex/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./game": "./src/schema/game/index.ts",
+    "./user": "./src/schema/user/index.ts",
+    "./ddl": "./src/ddl.ts",
+    "./search": "./src/search/index.ts",
+    "./manifest": "./src/generated/data-manifest.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "generate": "drizzle-kit generate --config drizzle.user.config.ts && tsx scripts/bundle-migrations.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "better-sqlite3": "^13.0.3",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15"
+  }
+}

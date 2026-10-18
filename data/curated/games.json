@@ -1,0 +1,169 @@
+{
+  "$comment": "Curated games for the global selector (RF01.2). Order = display order. The first version group is the base game; the others are DLC/expansions. Pokedexes are ordered by priority for the regional number. Mechanics: mega | z | dynamax | tera.",
+  "games": [
+    {
+      "identifier": "red-green-japan",
+      "versionGroups": ["red-green-japan"],
+      "pokedexes": ["kanto"],
+      "mechanics": []
+    },
+    {
+      "identifier": "blue-japan",
+      "versionGroups": ["blue-japan"],
+      "pokedexes": ["kanto"],
+      "mechanics": []
+    },
+    {
+      "identifier": "red-blue",
+      "versionGroups": ["red-blue"],
+      "pokedexes": ["kanto"],
+      "mechanics": []
+    },
+    {
+      "identifier": "yellow",
+      "versionGroups": ["yellow"],
+      "pokedexes": ["kanto"],
+      "mechanics": []
+    },
+    {
+      "identifier": "gold-silver",
+      "versionGroups": ["gold-silver"],
+      "pokedexes": ["original-johto"],
+      "mechanics": []
+    },
+    {
+      "identifier": "crystal",
+      "versionGroups": ["crystal"],
+      "pokedexes": ["original-johto"],
+      "mechanics": []
+    },
+    {
+      "identifier": "ruby-sapphire",
+      "versionGroups": ["ruby-sapphire"],
+      "pokedexes": ["hoenn"],
+      "mechanics": []
+    },
+    {
+      "identifier": "emerald",
+      "versionGroups": ["emerald"],
+      "pokedexes": ["hoenn"],
+      "mechanics": []
+    },
+    { "identifier": "colosseum", "versionGroups": ["colosseum"], "pokedexes": [], "mechanics": [] },
+    { "identifier": "xd", "versionGroups": ["xd"], "pokedexes": [], "mechanics": [] },
+    {
+      "identifier": "firered-leafgreen",
+      "versionGroups": ["firered-leafgreen"],
+      "pokedexes": ["kanto"],
+      "mechanics": []
+    },
+    {
+      "identifier": "diamond-pearl",
+      "versionGroups": ["diamond-pearl"],
+      "pokedexes": ["original-sinnoh"],
+      "mechanics": []
+    },
+    {
+      "identifier": "platinum",
+      "versionGroups": ["platinum"],
+      "pokedexes": ["extended-sinnoh"],
+      "mechanics": []
+    },
+    {
+      "identifier": "heartgold-soulsilver",
+      "versionGroups": ["heartgold-soulsilver"],
+      "pokedexes": ["updated-johto"],
+      "mechanics": []
+    },
+    {
+      "identifier": "black-white",
+      "versionGroups": ["black-white"],
+      "pokedexes": ["original-unova"],
+      "mechanics": []
+    },
+    {
+      "identifier": "black-2-white-2",
+      "versionGroups": ["black-2-white-2"],
+      "pokedexes": ["updated-unova"],
+      "mechanics": []
+    },
+    {
+      "identifier": "x-y",
+      "versionGroups": ["x-y"],
+      "pokedexes": ["kalos-central", "kalos-coastal", "kalos-mountain"],
+      "mechanics": ["mega"]
+    },
+    {
+      "identifier": "omega-ruby-alpha-sapphire",
+      "versionGroups": ["omega-ruby-alpha-sapphire"],
+      "pokedexes": ["updated-hoenn"],
+      "mechanics": ["mega"]
+    },
+    {
+      "identifier": "sun-moon",
+      "versionGroups": ["sun-moon"],
+      "pokedexes": [
+        "original-alola",
+        "original-melemele",
+        "original-akala",
+        "original-ulaula",
+        "original-poni"
+      ],
+      "mechanics": ["mega", "z"]
+    },
+    {
+      "identifier": "ultra-sun-ultra-moon",
+      "versionGroups": ["ultra-sun-ultra-moon"],
+      "pokedexes": [
+        "updated-alola",
+        "updated-melemele",
+        "updated-akala",
+        "updated-ulaula",
+        "updated-poni"
+      ],
+      "mechanics": ["mega", "z"]
+    },
+    {
+      "identifier": "lets-go-pikachu-lets-go-eevee",
+      "versionGroups": ["lets-go-pikachu-lets-go-eevee"],
+      "pokedexes": ["letsgo-kanto"],
+      "mechanics": ["mega"]
+    },
+    {
+      "identifier": "sword-shield",
+      "versionGroups": ["sword-shield", "the-isle-of-armor", "the-crown-tundra"],
+      "pokedexes": ["galar", "isle-of-armor", "crown-tundra"],
+      "mechanics": ["dynamax"]
+    },
+    {
+      "identifier": "brilliant-diamond-shining-pearl",
+      "versionGroups": ["brilliant-diamond-shining-pearl"],
+      "pokedexes": ["original-sinnoh"],
+      "mechanics": []
+    },
+    {
+      "identifier": "legends-arceus",
+      "versionGroups": ["legends-arceus"],
+      "pokedexes": ["hisui"],
+      "mechanics": []
+    },
+    {
+      "identifier": "scarlet-violet",
+      "versionGroups": ["scarlet-violet", "the-teal-mask", "the-indigo-disk"],
+      "pokedexes": ["paldea", "kitakami", "blueberry"],
+      "mechanics": ["tera"]
+    },
+    {
+      "identifier": "legends-za",
+      "versionGroups": ["legends-za", "mega-dimension"],
+      "pokedexes": ["lumiose-city", "hyperspace"],
+      "mechanics": ["mega"]
+    },
+    {
+      "identifier": "champions",
+      "versionGroups": ["champions"],
+      "pokedexes": ["champions"],
+      "mechanics": ["mega"]
+    }
+  ]
+}

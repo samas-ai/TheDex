@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - packages/*
+  - tools/*
+
+# better-sqlite3 >= 13 ships prebuilt binaries; letting pnpm run its implicit
+# node-gyp rebuild would require Visual Studio on Windows.
+onlyBuiltDependencies:
+  - esbuild
+
+ignoredBuiltDependencies:
+  - better-sqlite3

@@ -1,0 +1,28 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# build / caches
+dist/
+coverage/
+.turbo/
+.cache/
+*.tsbuildinfo
+
+# generated data
+apps/mobile/assets/db/*.db
+tools/data-pipeline/dist/
+
+# expo
+apps/mobile/.expo/
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/web-build/
+
+# env / os
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+*.log

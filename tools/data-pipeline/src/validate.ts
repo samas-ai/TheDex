@@ -1,0 +1,401 @@
+import { existsSync, statSync } from 'node:fs';
+import path from 'node:path';
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import {
+  chartMultiplier,
+  isTypeName,
+  legacyDamageClass,
+  NATURES,
+  isNatureName,
+  type Generation,
+} from '@thedex/engine';
+import { searchQuery } from '@thedex/db';
+import { readCsv } from './csv';
+import { PT_BR_REQUIRED } from './derive/curated';
+import { checkHotQueryPlans } from './query-plans';
+
+export interface ValidationReport {
+  readonly errors: string[];
+  readonly warnings: string[];
+  readonly passed: string[];
+}
+
+export interface ValidateOptions {
+  readonly dbFile: string;
+  /** PokeAPI CSV directory, for the engine cross-checks (skipped when absent). */
+  readonly csvDir?: string;
+  readonly sizeWarnBytes: number;
+  readonly sizeFailBytes: number;
+}
+
+type Db = Database.Database;
+
+function scalar<T = number>(db: Db, sql: string, ...params: unknown[]): T {
+  return db
+    .prepare(sql)
+    .pluck()
+    .get(...(params as never[])) as T;
+}
+
+function typesOf(db: Db, pokemonId: number, gen: number): string {
+  return (
+    db
+      .prepare(
+        `SELECT t.identifier FROM pokemon_types_by_gen pt JOIN types t ON t.id = pt.type_id
+         WHERE pt.pokemon_id = ? AND pt.generation_id = ? ORDER BY pt.slot`,
+      )
+      .pluck()
+      .all(pokemonId, gen) as string[]
+  ).join('/');
+}
+
+function moveAt(db: Db, move: string, versionGroup: string) {
+  return db
+    .prepare(
+      `SELECT t.identifier AS type, dc.identifier AS damage_class, ms.power
+       FROM move_stats_by_vg ms
+       JOIN moves m ON m.id = ms.move_id JOIN version_groups vg ON vg.id = ms.version_group_id
+       JOIN types t ON t.id = ms.type_id JOIN move_damage_classes dc ON dc.id = ms.damage_class_id
+       WHERE m.identifier = ? AND vg.identifier = ?`,
+    )
+    .get(move, versionGroup) as { type: string; damage_class: string; power: number } | undefined;
+}
+
+export async function validateDatabase(options: ValidateOptions): Promise<ValidationReport> {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const passed: string[] = [];
+  const check = (name: string, ok: boolean, detail = '') => {
+    if (ok) passed.push(name);
+    else errors.push(detail ? `${name}: ${detail}` : name);
+  };
+
+  if (!existsSync(options.dbFile)) {
+    return {
+      errors: [`Database not found: ${options.dbFile} (run pnpm data:build)`],
+      warnings,
+      passed,
+    };
+  }
+  const db = new Database(options.dbFile, { readonly: true });
+  try {
+    // --- Integrity -------------------------------------------------------------------
+    check('integrity_check', scalar<string>(db, 'PRAGMA integrity_check') === 'ok');
+    const fkViolations = db.pragma('foreign_key_check') as { table: string; parent: string }[];
+    const fkSummary = new Map<string, number>();
+    for (const v of fkViolations) {
+      const key = `${v.table} -> ${v.parent}`;
+      fkSummary.set(key, (fkSummary.get(key) ?? 0) + 1);
+    }
+    check(
+      'foreign_key_check',
+      fkViolations.length === 0,
+      [...fkSummary].map(([key, count]) => `${key} (${count})`).join(', '),
+    );
+
+    // --- Minimum counts (main series only) -----------------------------------------------
+    const minimums: [string, string, number][] = [
+      ['species', 'SELECT count(*) FROM pokemon_species', 1025],
+      ['pokemon varieties', 'SELECT count(*) FROM pokemon', 1300],
+      ['main-series moves', 'SELECT count(*) FROM moves WHERE id < 10000', 900],
+      ['main-series abilities', 'SELECT count(*) FROM abilities WHERE is_main_series = 1', 300],
+      ['items', 'SELECT count(*) FROM items', 2000],
+      ['learnset rows', 'SELECT count(*) FROM pokemon_moves', 500_000],
+      ['games', 'SELECT count(*) FROM games', 27],
+      ['search terms', 'SELECT count(*) FROM search_terms', 50_000],
+      ['natures', 'SELECT count(*) FROM natures', 25],
+    ];
+    for (const [name, sql, minimum] of minimums) {
+      const count = scalar(db, sql);
+      check(`count ${name} ≥ ${minimum}`, count >= minimum, `got ${count}`);
+    }
+
+    // --- Spot facts -------------------------------------------------------------------
+    const facts: [string, unknown, unknown][] = [
+      ['Bulbasaur is grass/poison (Gen 9)', typesOf(db, 1, 9), 'grass/poison'],
+      ['Clefairy is normal in Gen 5', typesOf(db, 35, 5), 'normal'],
+      ['Clefairy is fairy in Gen 6', typesOf(db, 35, 6), 'fairy'],
+      ['Magnemite is electric in Gen 1', typesOf(db, 81, 1), 'electric'],
+      ['Magnemite is electric/steel in Gen 2', typesOf(db, 81, 2), 'electric/steel'],
+      [
+        'Charizard BST 534',
+        scalar(
+          db,
+          'SELECT bst FROM pokemon_stats_by_gen WHERE pokemon_id = 6 AND generation_id = 9',
+        ),
+        534,
+      ],
+      [
+        'Pikachu Defense 30 in Gen 5',
+        scalar(
+          db,
+          'SELECT defense FROM pokemon_stats_by_gen WHERE pokemon_id = 25 AND generation_id = 5',
+        ),
+        30,
+      ],
+      [
+        'Pikachu Defense 40 in Gen 6',
+        scalar(
+          db,
+          'SELECT defense FROM pokemon_stats_by_gen WHERE pokemon_id = 25 AND generation_id = 6',
+        ),
+        40,
+      ],
+      [
+        'Mewtwo Special 154 in Gen 1',
+        scalar(
+          db,
+          'SELECT special FROM pokemon_stats_by_gen WHERE pokemon_id = 150 AND generation_id = 1',
+        ),
+        154,
+      ],
+      [
+        'Shedinja base HP 1',
+        scalar(
+          db,
+          'SELECT hp FROM pokemon_stats_by_gen WHERE pokemon_id = 292 AND generation_id = 9',
+        ),
+        1,
+      ],
+      [
+        'Gengar has Levitate in Gen 6',
+        scalar<string>(
+          db,
+          `SELECT a.identifier FROM pokemon_abilities_by_gen pa JOIN abilities a ON a.id = pa.ability_id
+           WHERE pa.pokemon_id = 94 AND pa.generation_id = 6 AND pa.slot = 1`,
+        ),
+        'levitate',
+      ],
+      [
+        'Gengar has Cursed Body in Gen 7',
+        scalar<string>(
+          db,
+          `SELECT a.identifier FROM pokemon_abilities_by_gen pa JOIN abilities a ON a.id = pa.ability_id
+           WHERE pa.pokemon_id = 94 AND pa.generation_id = 7 AND pa.slot = 1`,
+        ),
+        'cursed-body',
+      ],
+      [
+        'Bulbasaur has no hidden ability in Gen 4',
+        scalar(
+          db,
+          'SELECT count(*) FROM pokemon_abilities_by_gen WHERE pokemon_id = 1 AND generation_id = 4 AND is_hidden = 1',
+        ),
+        0,
+      ],
+      [
+        'No abilities before Gen 3',
+        scalar(db, 'SELECT count(*) FROM pokemon_abilities_by_gen WHERE generation_id < 3'),
+        0,
+      ],
+      [
+        'Thunderbolt is special in Emerald',
+        moveAt(db, 'thunderbolt', 'emerald')?.damage_class,
+        'special',
+      ],
+      [
+        'Karate Chop is normal-type in Red/Blue',
+        moveAt(db, 'karate-chop', 'red-blue')?.type,
+        'normal',
+      ],
+      ['Bite is normal-type in Red/Blue', moveAt(db, 'bite', 'red-blue')?.type, 'normal'],
+      [
+        'Bite is special in Gold/Silver (Dark was special)',
+        moveAt(db, 'bite', 'gold-silver')?.damage_class,
+        'special',
+      ],
+      [
+        'Bite is physical in Diamond/Pearl',
+        moveAt(db, 'bite', 'diamond-pearl')?.damage_class,
+        'physical',
+      ],
+      [
+        'Pikachu learns Thunderbolt in Scarlet/Violet',
+        scalar(
+          db,
+          `SELECT count(*) > 0 FROM pokemon_moves pm JOIN game_version_groups g ON g.version_group_id = pm.version_group_id
+           JOIN games ga ON ga.id = g.game_id WHERE pm.pokemon_id = 25 AND pm.move_id = 85 AND ga.identifier = 'scarlet-violet'`,
+        ),
+        1,
+      ],
+      [
+        'Fire is "Fogo" in pt-BR',
+        scalar<string>(db, `SELECT name FROM type_i18n WHERE type_id = 10 AND lang = 'pt-BR'`),
+        'Fogo',
+      ],
+      [
+        'Special Attack is "Atq. Esp." in pt-BR',
+        scalar<string>(db, `SELECT name FROM stat_i18n WHERE stat_id = 4 AND lang = 'pt-BR'`),
+        'Atq. Esp.',
+      ],
+      [
+        'Charizard Showdown ID',
+        scalar<string>(db, 'SELECT ps_id FROM pokemon WHERE id = 6'),
+        'charizard',
+      ],
+      [
+        'Flamethrower Max Move power 130',
+        scalar(db, `SELECT max_power FROM moves WHERE identifier = 'flamethrower'`),
+        130,
+      ],
+      [
+        'Mega Charizard X changes from Charizard with Charizardite X',
+        scalar<string>(
+          db,
+          `SELECT i.identifier FROM form_changes fc JOIN pokemon p ON p.id = fc.to_pokemon_id
+           JOIN items i ON i.id = fc.item_id WHERE p.identifier = 'charizard-mega-x' AND fc.from_pokemon_id = 6`,
+        ),
+        'charizardite-x',
+      ],
+      [
+        'Paradox tag on Flutter Mane',
+        scalar(db, `SELECT count(*) FROM species_tags WHERE species_id = 987 AND tag = 'paradox'`),
+        1,
+      ],
+    ];
+    for (const [name, actual, expected] of facts) {
+      check(name, actual === expected, `expected ${String(expected)}, got ${String(actual)}`);
+    }
+
+    // pt-BR completeness (18 types, 25 natures, 6 stats).
+    for (const [table, { entityTable, idColumn, where }] of Object.entries(PT_BR_REQUIRED)) {
+      const missing = scalar(
+        db,
+        `SELECT count(*) FROM "${entityTable}" e WHERE ${where} AND NOT EXISTS (
+           SELECT 1 FROM "${table}" i WHERE i.${idColumn} = e.id AND i.lang = 'pt-BR')`,
+      );
+      check(`pt-BR ${table} complete`, missing === 0, `${missing} missing`);
+    }
+
+    // --- Search ordering (RNF07) -------------------------------------------------------
+    const search = await searchQuery(
+      drizzle(db),
+      'char',
+      { langChain: ['en'] },
+      {
+        entityTypes: ['pokemon'],
+        limitPerType: 20,
+      },
+    );
+    const names = search.hits.map((hit) => hit.name);
+    const prefixNames = ['Charmander', 'Charmeleon', 'Charizard', 'Charjabug', 'Charcadet'];
+    const chimchar = names.indexOf('Chimchar');
+    const prefixPositions = prefixNames.map((name) => names.indexOf(name));
+    check(
+      'search "char" ranks prefix matches before Chimchar',
+      chimchar >= 0 && prefixPositions.every((p) => p >= 0 && p < chimchar),
+      names.join(', '),
+    );
+    check(
+      'search "char" lists prefix matches in national order',
+      prefixPositions.every((p, i) => i === 0 || p > prefixPositions[i - 1]!),
+      names.join(', '),
+    );
+
+    // --- Query plans ---------------------------------------------------------------------
+    const plans = await checkHotQueryPlans(db, { game: 'scarlet-violet', pokemonId: 25 });
+    check(
+      `${plans.checked} hot queries avoid full scans of large tables`,
+      plans.checked >= 10 && plans.violations.length === 0,
+      plans.violations.map((v) => `[${v.label}] ${v.detail}`).join('; ') ||
+        `${plans.checked} captured`,
+    );
+
+    // --- Engine cross-checks ----------------------------------------------------------------
+    if (options.csvDir && existsSync(path.join(options.csvDir, 'type_efficacy.csv'))) {
+      const typeIds = new Map(
+        readCsv(options.csvDir, 'types').map((row) => [row.id ?? '', row.identifier ?? '']),
+      );
+      const mismatches: string[] = [];
+      const compare = (atkId: string, defId: string, factor: string, gen: Generation) => {
+        const atk = typeIds.get(atkId) ?? '';
+        const def = typeIds.get(defId) ?? '';
+        if (!isTypeName(atk) || !isTypeName(def)) return;
+        const expected = Number(factor) / 100;
+        const actual = chartMultiplier(atk, def, gen);
+        if (actual !== expected)
+          mismatches.push(`${atk}->${def} gen${gen}: ${expected} vs engine ${actual}`);
+      };
+      for (const row of readCsv(options.csvDir, 'type_efficacy')) {
+        compare(row.damage_type_id ?? '', row.target_type_id ?? '', row.damage_factor ?? '', 9);
+      }
+      for (const row of readCsv(options.csvDir, 'type_efficacy_past')) {
+        compare(
+          row.damage_type_id ?? '',
+          row.target_type_id ?? '',
+          row.damage_factor ?? '',
+          Number(row.generation_id) as Generation,
+        );
+      }
+      check(
+        'PokeAPI type chart matches the engine',
+        mismatches.length === 0,
+        mismatches.join('; '),
+      );
+
+      const classMismatches = readCsv(options.csvDir, 'types')
+        .filter(
+          (row) =>
+            isTypeName(row.identifier ?? '') && row.identifier !== 'fairy' && row.damage_class_id,
+        )
+        .filter((row) => {
+          const expected = row.damage_class_id === '2' ? 'physical' : 'special';
+          return (
+            legacyDamageClass(row.identifier as Parameters<typeof legacyDamageClass>[0]) !==
+            expected
+          );
+        })
+        .map((row) => row.identifier);
+      check(
+        'PokeAPI legacy damage classes match the engine',
+        classMismatches.length === 0,
+        classMismatches.join(', '),
+      );
+
+      const statNames = new Map(
+        readCsv(options.csvDir, 'stats').map((row) => [row.id ?? '', row.identifier ?? '']),
+      );
+      const natureMismatches = readCsv(options.csvDir, 'natures')
+        .filter((row) => {
+          const name = row.identifier ?? '';
+          if (!isNatureName(name)) return true;
+          const nature = NATURES[name];
+          const increased = statNames.get(row.increased_stat_id ?? '');
+          const decreased = statNames.get(row.decreased_stat_id ?? '');
+          return nature.increased === null
+            ? increased !== decreased
+            : nature.increased !== increased || nature.decreased !== decreased;
+        })
+        .map((row) => row.identifier);
+      check(
+        'PokeAPI natures match the engine',
+        natureMismatches.length === 0,
+        natureMismatches.join(', '),
+      );
+    } else {
+      warnings.push('PokeAPI CSVs not found — engine cross-checks skipped');
+    }
+
+    // --- Size budget ------------------------------------------------------------------------
+    const size = statSync(options.dbFile).size;
+    const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+    check(`size ≤ ${mb(options.sizeFailBytes)}`, size <= options.sizeFailBytes, mb(size));
+    if (size > options.sizeWarnBytes) {
+      warnings.push(`size ${mb(size)} is above the ${mb(options.sizeWarnBytes)} warning budget`);
+    }
+
+    const unmappedMainAbilities = scalar(
+      db,
+      'SELECT count(*) FROM abilities WHERE ps_id IS NULL AND is_main_series = 1',
+    );
+    if (unmappedMainAbilities > 0)
+      warnings.push(`${unmappedMainAbilities} main-series abilities without Showdown ID`);
+    const unmappedPokemon = scalar(db, 'SELECT count(*) FROM pokemon WHERE ps_id IS NULL');
+    if (unmappedPokemon > 0)
+      warnings.push(`${unmappedPokemon} pokemon varieties without Showdown ID`);
+  } finally {
+    db.close();
+  }
+  return { errors, warnings, passed };
+}

@@ -1,0 +1,7 @@
+pnpm-lock.yaml
+**/*.generated.ts
+**/generated/
+**/migrations/
+dist/
+coverage/
+.cache/

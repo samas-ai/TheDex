@@ -1,0 +1,34 @@
+{
+  "name": "thedex",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.7",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "turbo run typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "data:fetch": "pnpm --filter @thedex/data-pipeline run fetch",
+    "data:build": "pnpm --filter @thedex/data-pipeline run build",
+    "data:validate": "pnpm --filter @thedex/data-pipeline run validate",
+    "bench:search": "pnpm --filter @thedex/data-pipeline run bench:search",
+    "db:generate": "pnpm --filter @thedex/db run generate"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^5.0.5",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "turbo": "^2.11.9",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.5"
+  }
+}

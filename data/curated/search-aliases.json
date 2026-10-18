@@ -1,0 +1,12 @@
+{
+  "$comment": "Extra search aliases (indexed with lang 'x-alias', always searched). Showdown IDs are added automatically. Keys are PokeAPI identifiers.",
+  "pokemon": {
+    "nidoran-f": ["nidoran femea", "nidoran female"],
+    "nidoran-m": ["nidoran macho", "nidoran male"],
+    "mr-mime": ["mister mime"],
+    "flabebe": ["flabebe"]
+  },
+  "move": {},
+  "ability": {},
+  "item": {}
+}
