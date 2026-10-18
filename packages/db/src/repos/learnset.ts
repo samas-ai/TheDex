@@ -35,6 +35,11 @@ export interface PokemonLearnset {
   readonly inheritedFromPokemonId: number | null;
 }
 
+/** Display label of a machine item identifier (`tm24` → `TM24`, `hm03` → `HM03`). */
+export function machineLabel(identifier: string): string {
+  return identifier.toUpperCase();
+}
+
 const TABS: Readonly<Record<string, LearnTab>> = {
   'level-up': 'level-up',
   machine: 'machine',
@@ -42,7 +47,8 @@ const TABS: Readonly<Record<string, LearnTab>> = {
   tutor: 'tutor',
 };
 
-function tabOf(method: string, level: number, generationId: number): LearnTab {
+/** Tab of a learnset row; `level` 0 level-up moves are learned on evolving from Gen 7 on. */
+export function tabOf(method: string, level: number, generationId: number): LearnTab {
   if (method === 'level-up' && level === 0 && generationId >= 7) return 'evolution';
   return TABS[method] ?? 'other';
 }
@@ -114,7 +120,7 @@ export async function getPokemonMoves(
       power: row.power,
       accuracy: row.accuracy,
       pp: row.pp,
-      machine: row.machine ? row.machine.toUpperCase() : null,
+      machine: row.machine ? machineLabel(row.machine) : null,
     })),
   };
 }

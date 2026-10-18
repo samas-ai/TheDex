@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { pickI18n } from '../sql';
+import { pickI18n, sqlList } from '../sql';
 import type { AnySQLiteDatabase, GameContext } from '../types';
 
 interface GameRow {
@@ -69,4 +69,52 @@ export async function listGames(
     generationId: row.generation_id,
     name: row.name ?? row.identifier,
   }));
+}
+
+/** What PokeAPI has for a game and which battle mechanics it uses. */
+export interface GameFeatures {
+  /** Learnsets exist (PokeAPI lacks Legends: Z-A and the DLC learnsets). */
+  readonly hasLearnsets: boolean;
+  /** Wild encounters exist (PokeAPI lacks SV, Legends: Arceus, BDSP, Z-A…). */
+  readonly hasEncounters: boolean;
+  readonly hasMega: boolean;
+  readonly hasZ: boolean;
+  readonly hasDynamax: boolean;
+  readonly hasTera: boolean;
+}
+
+/**
+ * Data coverage and mechanics of the context game, so screens can tell "none" from "PokeAPI
+ * has no data for this game". Both EXISTS probes walk small tables into an index.
+ */
+export async function getGameFeatures(
+  db: AnySQLiteDatabase,
+  ctx: GameContext,
+): Promise<GameFeatures> {
+  const versions = ctx.versionIds.length > 0 ? sqlList(ctx.versionIds) : sql`NULL`;
+  const row = (await db.get(sql`
+    SELECT g.has_mega, g.has_z, g.has_dynamax, g.has_tera,
+      EXISTS (SELECT 1 FROM moves m WHERE EXISTS (SELECT 1 FROM pokemon_moves pm
+        WHERE pm.move_id = m.id AND pm.version_group_id IN (${sqlList(ctx.versionGroupIds)}))) AS has_learnsets,
+      EXISTS (SELECT 1 FROM location_areas la WHERE EXISTS (SELECT 1 FROM encounters e
+        WHERE e.location_area_id = la.id AND e.version_id IN (${versions}))) AS has_encounters
+    FROM games g WHERE g.id = ${ctx.gameId}`)) as
+    | {
+        has_mega: number;
+        has_z: number;
+        has_dynamax: number;
+        has_tera: number;
+        has_learnsets: number;
+        has_encounters: number;
+      }
+    | undefined;
+  if (!row) throw new Error(`Unknown game: ${ctx.gameId}`);
+  return {
+    hasLearnsets: row.has_learnsets === 1,
+    hasEncounters: row.has_encounters === 1,
+    hasMega: row.has_mega === 1,
+    hasZ: row.has_z === 1,
+    hasDynamax: row.has_dynamax === 1,
+    hasTera: row.has_tera === 1,
+  };
 }

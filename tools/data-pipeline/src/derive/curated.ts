@@ -36,6 +36,7 @@ const PT_BR_TARGETS: Readonly<Record<string, { entityTable: string; idColumn: st
   nature_i18n: { entityTable: 'natures', idColumn: 'nature_id' },
   stat_i18n: { entityTable: 'stats', idColumn: 'stat_id' },
   flavor_i18n: { entityTable: 'flavors', idColumn: 'flavor_id' },
+  move_damage_class_i18n: { entityTable: 'move_damage_classes', idColumn: 'damage_class_id' },
 };
 
 /** Entities that must be fully translated in pt-BR (18 types, 25 natures, 6 battle stats). */
@@ -85,4 +86,41 @@ export function derivePtBr(ctx: BuildContext): void {
     }
   }
   ctx.log(`  pt-BR curated names: ${total}`);
+}
+
+/**
+ * ability_prose_i18n.overworld_effect (RF04.1) from data/curated/ability-overworld.json:
+ * effects outside battle, which PokeAPI does not describe.
+ */
+export function deriveAbilityOverworld(ctx: BuildContext): void {
+  const ids = new Map(
+    ctx
+      .all<{ id: number; identifier: string }>('SELECT id, identifier FROM abilities')
+      .map((row) => [row.identifier, row.id]),
+  );
+  const languages = new Set(
+    ctx.all<{ code: string }>('SELECT code FROM languages').map((row) => row.code),
+  );
+  const upsert = ctx.db.prepare(`
+    INSERT INTO ability_prose_i18n (ability_id, lang, overworld_effect) VALUES (?, ?, ?)
+    ON CONFLICT (ability_id, lang) DO UPDATE SET overworld_effect = excluded.overworld_effect`);
+  let total = 0;
+  ctx.db.transaction(() => {
+    for (const [identifier, texts] of Object.entries(ctx.curated.abilityOverworld)) {
+      const id = ids.get(identifier);
+      if (id === undefined) {
+        if (ctx.options.allowMissingCsv) continue;
+        throw new Error(`ability-overworld.json: unknown ability "${identifier}"`);
+      }
+      for (const [lang, text] of Object.entries(texts)) {
+        if (!languages.has(lang)) {
+          if (ctx.options.allowMissingCsv) continue;
+          throw new Error(`ability-overworld.json: unknown language "${lang}" (${identifier})`);
+        }
+        upsert.run(id, lang, text);
+        total++;
+      }
+    }
+  })();
+  ctx.log(`  ability overworld effects: ${total}`);
 }

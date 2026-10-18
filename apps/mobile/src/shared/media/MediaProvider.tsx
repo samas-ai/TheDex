@@ -53,3 +53,24 @@ export function useSpriteUri(pokemonId: number, style: string, shiny = false): s
   }, [media, key, pokemonId, style, shiny]);
   return state.key === key ? state.uri : media.peekSprite(pokemonId, style, shiny);
 }
+
+/** Local URI of an item icon (null while loading, or when offline and not cached). */
+export function useItemIconUri(itemId: number): string | null {
+  const media = useMediaService();
+  const [state, setState] = useState(() => ({ itemId, uri: media.peekItemIcon(itemId) }));
+  useEffect(() => {
+    let cancelled = false;
+    const peeked = media.peekItemIcon(itemId);
+    if (peeked) {
+      setState({ itemId, uri: peeked });
+      return;
+    }
+    void media.itemIcon(itemId).then((uri) => {
+      if (!cancelled) setState({ itemId, uri });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [media, itemId]);
+  return state.itemId === itemId ? state.uri : media.peekItemIcon(itemId);
+}

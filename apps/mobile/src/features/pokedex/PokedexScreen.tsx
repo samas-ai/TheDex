@@ -1,15 +1,16 @@
 import { FlashList } from '@shopify/flash-list';
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { listPokedex, searchQuery, type PokedexEntry } from '@thedex/db';
-import { RADII, SPACING } from '@thedex/ui-tokens';
+import { SPACING } from '@thedex/ui-tokens';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
 import { useGame } from '../../shared/game/GameProvider';
 import { useAsync } from '../../shared/hooks/useAsync';
 import { useTheme } from '../../shared/theme/ThemeProvider';
 import { Button, Chip, Loading, Message, ThemedText } from '../../shared/ui/primitives';
+import { SearchField } from '../../shared/ui/SearchField';
 import { FilterSheet } from './FilterSheet';
 import { PokedexRow } from './PokedexRow';
 import {
@@ -31,7 +32,7 @@ export function PokedexScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const { db } = useAppDatabase();
-  const { ctx, game } = useGame();
+  const { ctx } = useGame();
   const [filters, setFilters] = useState<PokedexFilterState>(EMPTY_FILTERS);
   const [sort, setSort] = useState<PokedexSort>(DEFAULT_SORT);
   const [query, setQuery] = useState('');
@@ -59,47 +60,21 @@ export function PokedexScreen() {
   }, []);
 
   const filterCount = activeFilterCount(filters);
-  const headerRight = useCallback(
-    () => (
-      <View style={styles.headerActions}>
-        <Chip label={game.name} onPress={() => router.push('/game')} />
-        <Pressable
-          onPress={() => router.push('/settings')}
-          accessibilityRole="button"
-          accessibilityLabel={t('nav.settings')}
-          hitSlop={8}
-        >
-          <ThemedText variant="headline">⚙</ThemedText>
-        </Pressable>
-      </View>
-    ),
-    [game.name, t],
-  );
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <Stack.Screen options={{ title: t('nav.pokedex'), headerRight }} />
       <View style={styles.toolbar}>
-        <TextInput
+        <SearchField
           value={query}
           onChangeText={setQuery}
           placeholder={t('pokedex.searchPlaceholder')}
-          placeholderTextColor={theme.colors.textMuted}
-          autoCorrect={false}
-          autoCapitalize="none"
-          clearButtonMode="while-editing"
-          returnKeyType="search"
-          style={[
-            styles.search,
-            { backgroundColor: theme.colors.surface, color: theme.colors.text },
-          ]}
         />
         <View style={styles.chips}>
           <Chip
             label={
               filterCount > 0
-                ? t('pokedex.filtersActive', { count: filterCount })
-                : t('pokedex.filters')
+                ? t('common.filtersActive', { count: filterCount })
+                : t('common.filters')
             }
             selected={filterCount > 0}
             onPress={() => setSheet('filters')}
@@ -169,14 +144,7 @@ export function PokedexScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   toolbar: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, gap: SPACING.sm },
-  search: {
-    borderRadius: RADII.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm + 2,
-    fontSize: 16,
-  },
   chips: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   count: { marginLeft: 'auto', marginBottom: SPACING.sm },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
   listContent: { paddingTop: SPACING.xs, paddingBottom: SPACING.xxl },
 });

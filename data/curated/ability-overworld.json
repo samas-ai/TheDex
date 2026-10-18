@@ -1,0 +1,144 @@
+{
+  "$comment": "Ability effects outside battle (RF04.1), which PokeAPI does not provide. Keys are PokeAPI ability identifiers; values map a language (BCP-47, \"en\" required) to the text. The pipeline fails on unknown identifiers or languages.",
+  "$sources": "Verified against each ability's Bulbapedia article, section \"Outside of battle\" (https://bulbapedia.bulbagarden.net/wiki/<Ability>_(Ability)), October 2026.",
+  "arena-trap": {
+    "en": "From Emerald on, if the first Pokémon in the party has it (even fainted), the wild encounter rate is doubled. Sword/Shield: affects only hidden encounters. No effect in Scarlet/Violet.",
+    "pt-BR": "A partir de Emerald, se o primeiro Pokémon da equipe tiver esta habilidade (mesmo desmaiado), a taxa de encontro de Pokémon selvagens dobra. Em Sword/Shield, afeta só os encontros ocultos. Sem efeito em Scarlet/Violet."
+  },
+  "compound-eyes": {
+    "en": "From Emerald on, if the first Pokémon in the party has it, wild Pokémon are more likely to hold items (50%/5% → 60%/20%). No effect in Scarlet/Violet.",
+    "pt-BR": "A partir de Emerald, se o primeiro Pokémon da equipe tiver esta habilidade, Pokémon selvagens têm mais chance de carregar itens (50%/5% → 60%/20%). Sem efeito em Scarlet/Violet."
+  },
+  "cute-charm": {
+    "en": "From Emerald on, if the first Pokémon in the party has it, there is a 2/3 chance a wild Pokémon will be of the opposite gender, if possible. No effect in Scarlet/Violet.",
+    "pt-BR": "A partir de Emerald, se o primeiro Pokémon da equipe tiver esta habilidade, há 2/3 de chance de o Pokémon selvagem ser do sexo oposto, quando possível. Sem efeito em Scarlet/Violet."
+  },
+  "flame-body": {
+    "en": "From Emerald on, if a Pokémon with it is in the party (even fainted), Eggs in the party hatch in half the usual cycles. Does not stack with Magma Armor or Steam Engine.",
+    "pt-BR": "A partir de Emerald, se um Pokémon com esta habilidade estiver na equipe (mesmo desmaiado), os Ovos da equipe chocam na metade dos ciclos. Não acumula com Magma Armor nem Steam Engine."
+  },
+  "flash-fire": {
+    "en": "Sword/Shield (51% chance) and Brilliant Diamond/Shining Pearl (50%): if the first Pokémon in the party has it, the game may force an encounter with a wild Fire-type Pokémon, if possible.",
+    "pt-BR": "Em Sword/Shield (51% de chance) e Brilliant Diamond/Shining Pearl (50%): se o primeiro Pokémon da equipe tiver esta habilidade, o jogo pode forçar o encontro com um Pokémon selvagem do tipo Fogo, se houver."
+  },
+  "harvest": {
+    "en": "Sword/Shield (51% chance) and Brilliant Diamond/Shining Pearl (50%): if the first Pokémon in the party has it, the game may force an encounter with a wild Grass-type Pokémon, if possible.",
+    "pt-BR": "Em Sword/Shield (51% de chance) e Brilliant Diamond/Shining Pearl (50%): se o primeiro Pokémon da equipe tiver esta habilidade, o jogo pode forçar o encontro com um Pokémon selvagem do tipo Planta, se houver."
+  },
+  "honey-gather": {
+    "en": "After the player wins a battle, a party Pokémon with it holding no item may find Honey, even if it didn't battle. The chance grows with level: 5% at Lv. 1–10 up to 50% at Lv. 91–100.",
+    "pt-BR": "Após o jogador vencer uma batalha, um Pokémon da equipe com esta habilidade e sem item pode coletar Honey (Mel), mesmo sem ter lutado. A chance cresce com o nível: de 5% (Nv. 1–10) a 50% (Nv. 91–100)."
+  },
+  "hustle": {
+    "en": "Emerald to Gen 7 and Brilliant Diamond/Shining Pearl: if the first Pokémon in the party has it, 50% chance a wild Pokémon is at the top of its level range. Not in Sword/Shield or Scarlet/Violet.",
+    "pt-BR": "De Emerald à Geração 7 e em Brilliant Diamond/Shining Pearl: se o primeiro Pokémon da equipe tiver esta habilidade, há 50% de chance de o Pokémon selvagem vir no nível máximo da faixa. Não vale em Sword/Shield nem Scarlet/Violet."
+  },
+  "hyper-cutter": {
+    "en": "Emerald only: when a Pokémon with it uses Cut in the overworld, it cuts the tall grass within two tiles of the player instead of one.",
+    "pt-BR": "Só em Emerald: quando um Pokémon com esta habilidade usa Cut fora de batalha, ele corta o mato alto num raio de dois quadrados ao redor do jogador, em vez de um."
+  },
+  "illuminate": {
+    "en": "If the first Pokémon in the party has it, the wild encounter rate is doubled (in HeartGold/SoulSilver, also for Rock Smash). Sword/Shield: hidden encounters only. Seems to have no effect in Scarlet/Violet.",
+    "pt-BR": "Se o primeiro Pokémon da equipe tiver esta habilidade, a taxa de encontro de Pokémon selvagens dobra (em HeartGold/SoulSilver, também com Rock Smash). Em Sword/Shield, só encontros ocultos. Parece não ter efeito em Scarlet/Violet."
+  },
+  "infiltrator": {
+    "en": "Sword/Shield: if the first Pokémon in the party has it, hidden wild encounters (rustling grass) become 87.5% less frequent.",
+    "pt-BR": "Em Sword/Shield: se o primeiro Pokémon da equipe tiver esta habilidade, os encontros ocultos (grama balançando) ficam 87,5% menos frequentes."
+  },
+  "intimidate": {
+    "en": "Emerald to Gen 7: if the first Pokémon in the party has it, 50% chance to avoid a wild encounter with a Pokémon at least 5 levels lower than it. Seemingly no effect from Gen 8 on.",
+    "pt-BR": "De Emerald à Geração 7: se o primeiro Pokémon da equipe tiver esta habilidade, há 50% de chance de evitar o encontro com um Pokémon selvagem 5 ou mais níveis abaixo dele. Parece não ter efeito a partir da Geração 8."
+  },
+  "keen-eye": {
+    "en": "Emerald to Gen 7: if the first Pokémon in the party has it, 50% chance to avoid a wild encounter with a Pokémon at least 5 levels lower. HeartGold/SoulSilver: +5% chance of items from Rock Smash.",
+    "pt-BR": "De Emerald à Geração 7: se o primeiro Pokémon da equipe tiver esta habilidade, há 50% de chance de evitar o encontro com um Pokémon selvagem 5 ou mais níveis abaixo. Em HeartGold/SoulSilver: +5% de chance de item com Rock Smash."
+  },
+  "lightning-rod": {
+    "en": "If the first Pokémon in the party has it: in Emerald, Match Call trainers phone twice as often; in Sword/Shield (51%) and Brilliant Diamond/Shining Pearl (50%), it may force a wild Electric-type encounter.",
+    "pt-BR": "Se o primeiro Pokémon da equipe tiver esta habilidade: em Emerald, os treinadores do Match Call ligam duas vezes mais; em Sword/Shield (51%) e Brilliant Diamond/Shining Pearl (50%), pode forçar um encontro com Pokémon selvagem do tipo Elétrico."
+  },
+  "magma-armor": {
+    "en": "From Emerald on, if a Pokémon with it is in the party (even fainted), Eggs in the party hatch in half the usual cycles. Does not stack with Flame Body or Steam Engine.",
+    "pt-BR": "A partir de Emerald, se um Pokémon com esta habilidade estiver na equipe (mesmo desmaiado), os Ovos da equipe chocam na metade dos ciclos. Não acumula com Flame Body nem Steam Engine."
+  },
+  "magnet-pull": {
+    "en": "From Emerald on, if the first Pokémon in the party has it, 50% chance (51% in Sword/Shield) to force a wild Steel-type encounter, if possible. HeartGold/SoulSilver: +5% items from Rock Smash. No effect in Scarlet/Violet.",
+    "pt-BR": "A partir de Emerald, se o primeiro Pokémon da equipe tiver esta habilidade, há 50% de chance (51% em Sword/Shield) de forçar um encontro com Pokémon selvagem do tipo Metálico, se houver. Em HeartGold/SoulSilver, +5% de item com Rock Smash. Sem efeito em Scarlet/Violet."
+  },
+  "natural-cure": {
+    "en": "Gen 4–7: if the Pokémon is on the field when a battle ends, its status condition is cured. From Gen 8 on, this no longer happens.",
+    "pt-BR": "Gerações 4 a 7: se o Pokémon estiver em campo quando a batalha terminar, sua condição de status é curada. A partir da Geração 8, isso não acontece mais."
+  },
+  "no-guard": {
+    "en": "If the first Pokémon in the party has it (even fainted), the wild encounter rate is doubled. Sword/Shield: affects only hidden encounters. No effect in Scarlet/Violet.",
+    "pt-BR": "Se o primeiro Pokémon da equipe tiver esta habilidade (mesmo desmaiado), a taxa de encontro de Pokémon selvagens dobra. Em Sword/Shield, afeta só os encontros ocultos. Sem efeito em Scarlet/Violet."
+  },
+  "pickup": {
+    "en": "After the player wins a battle, each party Pokémon with it holding no item has a 10% chance to find one, even if it didn't battle. From Emerald on, the possible items depend on its level.",
+    "pt-BR": "Após o jogador vencer uma batalha, cada Pokémon da equipe com esta habilidade e sem item tem 10% de chance de achar um, mesmo sem ter lutado. A partir de Emerald, os itens possíveis dependem do nível."
+  },
+  "pressure": {
+    "en": "Emerald to Gen 7 and Brilliant Diamond/Shining Pearl: if the first Pokémon in the party has it, 50% chance a wild Pokémon is at the top of its level range. Not in Sword/Shield or Scarlet/Violet.",
+    "pt-BR": "De Emerald à Geração 7 e em Brilliant Diamond/Shining Pearl: se o primeiro Pokémon da equipe tiver esta habilidade, há 50% de chance de o Pokémon selvagem vir no nível máximo da faixa. Não vale em Sword/Shield nem Scarlet/Violet."
+  },
+  "quick-feet": {
+    "en": "If the first Pokémon in the party has it, the wild encounter rate is halved. Sword/Shield: hidden encounters become 87.5% less frequent instead. No effect in Scarlet/Violet.",
+    "pt-BR": "Se o primeiro Pokémon da equipe tiver esta habilidade, a taxa de encontro de Pokémon selvagens cai pela metade. Em Sword/Shield, os encontros ocultos ficam 87,5% menos frequentes. Sem efeito em Scarlet/Violet."
+  },
+  "sand-veil": {
+    "en": "From Emerald on, if the first Pokémon in the party has it, the wild encounter rate is halved in sandstorm areas. Seems to have no effect in Sword/Shield or Scarlet/Violet.",
+    "pt-BR": "A partir de Emerald, se o primeiro Pokémon da equipe tiver esta habilidade, a taxa de encontro de Pokémon selvagens cai pela metade em áreas com tempestade de areia. Parece não ter efeito em Sword/Shield e Scarlet/Violet."
+  },
+  "serene-grace": {
+    "en": "HeartGold/SoulSilver only: when a Pokémon with it finds an item by breaking a rock with Rock Smash, the item is bumped one step toward the rarer ones (the most common item is never found).",
+    "pt-BR": "Só em HeartGold/SoulSilver: quando um Pokémon com esta habilidade acha um item ao quebrar uma pedra com Rock Smash, o item sobe um degrau rumo aos mais raros (o mais comum nunca aparece)."
+  },
+  "snow-cloak": {
+    "en": "If the first Pokémon in the party has it, the wild encounter rate is halved in areas with hail. Seems to have no effect in Sword/Shield or Scarlet/Violet.",
+    "pt-BR": "Se o primeiro Pokémon da equipe tiver esta habilidade, a taxa de encontro de Pokémon selvagens cai pela metade em áreas com granizo. Parece não ter efeito em Sword/Shield e Scarlet/Violet."
+  },
+  "static": {
+    "en": "From Emerald on, if the first Pokémon in the party has it, 50% chance (51% in Sword/Shield) to force a wild Electric-type encounter, if possible. No effect in Scarlet/Violet.",
+    "pt-BR": "A partir de Emerald, se o primeiro Pokémon da equipe tiver esta habilidade, há 50% de chance (51% em Sword/Shield) de forçar um encontro com Pokémon selvagem do tipo Elétrico, se houver. Sem efeito em Scarlet/Violet."
+  },
+  "steam-engine": {
+    "en": "If a Pokémon with it is in the party (even fainted), Eggs in the party hatch in half the usual cycles. Does not stack with Flame Body or Magma Armor.",
+    "pt-BR": "Se um Pokémon com esta habilidade estiver na equipe (mesmo desmaiado), os Ovos da equipe chocam na metade dos ciclos. Não acumula com Flame Body nem Magma Armor."
+  },
+  "stench": {
+    "en": "If the first Pokémon in the party has it, the wild encounter rate is halved (−25% in Emerald's Battle Pyramid). Sword/Shield: hidden encounters 87.5% less frequent instead. No effect in Scarlet/Violet.",
+    "pt-BR": "Se o primeiro Pokémon da equipe tiver esta habilidade, a taxa de encontro de Pokémon selvagens cai pela metade (−25% na Battle Pyramid de Emerald). Em Sword/Shield, os encontros ocultos ficam 87,5% menos frequentes. Sem efeito em Scarlet/Violet."
+  },
+  "sticky-hold": {
+    "en": "From Emerald on, if the first Pokémon in the party has it, bites occur more often while fishing. Due to a bug, no effect in Diamond/Pearl/Platinum or Brilliant Diamond/Shining Pearl.",
+    "pt-BR": "A partir de Emerald, se o primeiro Pokémon da equipe tiver esta habilidade, os peixes fisgam com mais frequência na pesca. Por um bug, sem efeito em Diamond/Pearl/Platinum e Brilliant Diamond/Shining Pearl."
+  },
+  "storm-drain": {
+    "en": "Sword/Shield (51% chance) and Brilliant Diamond/Shining Pearl (50%): if the first Pokémon in the party has it, the game may force an encounter with a wild Water-type Pokémon, if possible.",
+    "pt-BR": "Em Sword/Shield (51% de chance) e Brilliant Diamond/Shining Pearl (50%): se o primeiro Pokémon da equipe tiver esta habilidade, o jogo pode forçar o encontro com um Pokémon selvagem do tipo Água, se houver."
+  },
+  "suction-cups": {
+    "en": "From Emerald on, if the first Pokémon in the party has it, bites occur more often while fishing (not in Diamond/Pearl/Platinum or Brilliant Diamond/Shining Pearl, due to a bug). HeartGold/SoulSilver: +5% items from Rock Smash.",
+    "pt-BR": "A partir de Emerald, se o primeiro Pokémon da equipe tiver esta habilidade, os peixes fisgam com mais frequência na pesca (por um bug, não em Diamond/Pearl/Platinum e Brilliant Diamond/Shining Pearl). Em HeartGold/SoulSilver, +5% de item com Rock Smash."
+  },
+  "super-luck": {
+    "en": "Gen 8: if the first Pokémon in the party has it, wild Pokémon are more likely to hold items (50%/5% → 60%/20%). HeartGold/SoulSilver: Rock Smash items are bumped toward rarer ones. No effect in Scarlet/Violet.",
+    "pt-BR": "Na Geração 8: se o primeiro Pokémon da equipe tiver esta habilidade, Pokémon selvagens têm mais chance de carregar itens (50%/5% → 60%/20%). Em HeartGold/SoulSilver, os itens de Rock Smash tendem aos mais raros. Sem efeito em Scarlet/Violet."
+  },
+  "swarm": {
+    "en": "Emerald only: if the first Pokémon in the party has it, cries of wild Pokémon are heard in the overworld twice as often.",
+    "pt-BR": "Só em Emerald: se o primeiro Pokémon da equipe tiver esta habilidade, os gritos de Pokémon selvagens são ouvidos fora de batalha com o dobro da frequência."
+  },
+  "synchronize": {
+    "en": "From Emerald on, if the first Pokémon in the party has it, wild Pokémon have a 50% chance to share its Nature (100% in Sword/Shield, not static encounters). ORAS to USUM: also certain gift Pokémon. No effect in Scarlet/Violet.",
+    "pt-BR": "A partir de Emerald, se o primeiro Pokémon da equipe tiver esta habilidade, Pokémon selvagens têm 50% de chance de ter a mesma natureza (100% em Sword/Shield, exceto encontros fixos). De ORAS a USUM, também certos Pokémon de presente. Sem efeito em Scarlet/Violet."
+  },
+  "vital-spirit": {
+    "en": "Emerald to Gen 7 and Brilliant Diamond/Shining Pearl: if the first Pokémon in the party has it, 50% chance a wild Pokémon is at the top of its level range. Not in Sword/Shield or Scarlet/Violet.",
+    "pt-BR": "De Emerald à Geração 7 e em Brilliant Diamond/Shining Pearl: se o primeiro Pokémon da equipe tiver esta habilidade, há 50% de chance de o Pokémon selvagem vir no nível máximo da faixa. Não vale em Sword/Shield nem Scarlet/Violet."
+  },
+  "white-smoke": {
+    "en": "From Emerald on, if the first Pokémon in the party has it, the wild encounter rate is halved. Sword/Shield: hidden encounters become 87.5% less frequent instead. No effect in Scarlet/Violet.",
+    "pt-BR": "A partir de Emerald, se o primeiro Pokémon da equipe tiver esta habilidade, a taxa de encontro de Pokémon selvagens cai pela metade. Em Sword/Shield, os encontros ocultos ficam 87,5% menos frequentes. Sem efeito em Scarlet/Violet."
+  }
+}

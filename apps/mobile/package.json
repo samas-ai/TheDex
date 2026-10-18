@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
     "@shopify/flash-list": "2.3.2",
     "@thedex/db": "workspace:*",
     "@thedex/engine": "workspace:*",

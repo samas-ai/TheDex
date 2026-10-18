@@ -2,7 +2,17 @@ export { DATA_MANIFEST, DATA_VERSION } from './generated/data-manifest';
 export { gameLangChain } from './lang';
 export { stripProseMarkup } from './prose';
 export {
+  getAbilityDetail,
+  getAbilityHolders,
+  listAbilityDex,
+  type AbilityDetail,
+  type AbilityFilters,
+  type AbilityHolder,
+  type AbilityListEntry,
+} from './repos/abilities';
+export {
   listAbilities,
+  listDamageClasses,
   listEggGroups,
   listGameLanguages,
   listGenerations,
@@ -12,7 +22,13 @@ export {
   listTypes,
   type NamedEntity,
 } from './repos/catalog';
-export { getPokemonEncounters, type EncounterEntry } from './repos/encounters';
+export {
+  getLocationEncounters,
+  getPokemonEncounters,
+  type AreaEncounter,
+  type EncounterEntry,
+  type LocationAreaEncounters,
+} from './repos/encounters';
 export {
   getEvolutionChain,
   getPokemonForms,
@@ -25,13 +41,45 @@ export {
   type PokemonForms,
   type PokemonVariety,
 } from './repos/evolution';
-export { listGames, resolveGameContext, type GameSummary } from './repos/game-context';
+export { latestFlavorText, type FlavorTable } from './repos/flavor';
+export {
+  getGameFeatures,
+  listGames,
+  resolveGameContext,
+  type GameFeatures,
+  type GameSummary,
+} from './repos/game-context';
+export {
+  getItemDetail,
+  isItemGroup,
+  ITEM_GROUPS,
+  listItems,
+  type BerryInfo,
+  type ItemDetail,
+  type ItemFilters,
+  type ItemGroup,
+  type ItemListEntry,
+  type ItemPokemonRef,
+  type MachineMove,
+} from './repos/items';
 export {
   getPokemonMoves,
+  machineLabel,
   type LearnsetMove,
   type LearnTab,
   type PokemonLearnset,
 } from './repos/learnset';
+export {
+  compareNatural,
+  getLocation,
+  listLocationRegions,
+  listLocations,
+  LOCATION_KINDS,
+  type LocationDetail,
+  type LocationKind,
+  type LocationListEntry,
+  type LocationRegion,
+} from './repos/locations';
 export {
   CRY_AAC_STYLE,
   CRY_STYLE,
@@ -40,8 +88,13 @@ export {
   getMediaCacheStats,
   getMediaPackSizes,
   getMediaSources,
+  getItemIcon,
   getPokemonMedia,
   isSpriteStyle,
+  ITEM_ICON_STYLE,
+  itemIconCacheKey,
+  itemIconSource,
+  listItemIcons,
   listMediaAssets,
   listMediaCacheKeys,
   mediaCacheKey,
@@ -49,6 +102,7 @@ export {
   putMediaCacheEntry,
   SPRITE_STYLES,
   touchMediaCacheEntry,
+  type ItemIcon,
   type MediaAsset,
   type MediaCacheEntry,
   type MediaCacheStats,
@@ -57,6 +111,30 @@ export {
   type SpriteStyle,
 } from './repos/media';
 export { getDataMeta, getTableCounts } from './repos/meta';
+export {
+  DAMAGE_CLASSES,
+  getMoveDetail,
+  getMoveLearners,
+  listGmaxMoves,
+  listMoves,
+  MOVE_SORT_KEYS,
+  type DamageClass,
+  type GmaxMove,
+  type MaxMoveInfo,
+  type MoveDetail,
+  type MoveFilters,
+  type MoveFlag,
+  type MoveLearner,
+  type MoveLearnMethod,
+  type MoveListEntry,
+  type MoveMeta,
+  type MoveQuery,
+  type MoveSortKey,
+  type MoveStats,
+  type MoveVariantSource,
+  type ZMoveInfo,
+} from './repos/moves';
+export { listNatures, type NatureEntry } from './repos/natures';
 export {
   listPokedex,
   POKEDEX_SORT_KEYS,
@@ -77,10 +155,8 @@ export {
   type PokemonStats,
 } from './repos/pokemon';
 export {
-  getAbilityDetail,
   getFlavorTexts,
   getPokemonProfile,
-  type AbilityDetail,
   type EvYield,
   type FlavorTextEntry,
   type PokemonProfile,

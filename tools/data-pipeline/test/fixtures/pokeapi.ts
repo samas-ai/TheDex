@@ -94,6 +94,12 @@ export const FIXTURE_CSVS: Record<string, Row[]> = {
     { id: 25, identifier: 'scarlet-violet', generation_id: 9, order: 27 },
     { id: 26, identifier: 'the-teal-mask', generation_id: 9, order: 28 },
   ],
+  version_group_regions: [
+    { version_group_id: 1, region_id: 1 },
+    { version_group_id: 3, region_id: 2 },
+    { version_group_id: 25, region_id: 10 },
+    { version_group_id: 26, region_id: 10 },
+  ],
   versions: [
     { id: 1, version_group_id: 1, identifier: 'red' },
     { id: 2, version_group_id: 1, identifier: 'blue' },
@@ -321,6 +327,14 @@ export const FIXTURE_CSVS: Record<string, Row[]> = {
   ],
   move_targets: [{ id: 10, identifier: 'selected-pokemon' }],
   move_effects: [{ id: 1 }, { id: 7 }],
+  move_effect_prose: [
+    {
+      move_effect_id: 7,
+      local_language_id: EN,
+      short_effect: 'Has a $effect_chance% chance to make the target [flinch]{mechanic:flinch}.',
+      effect: 'Inflicts regular damage. Has a $effect_chance% chance to make the target flinch.',
+    },
+  ],
   pokemon_move_methods: [
     { id: 1, identifier: 'level-up' },
     { id: 4, identifier: 'machine' },
@@ -536,10 +550,12 @@ export const FIXTURE_CSVS: Record<string, Row[]> = {
   ],
   item_pockets: [
     { id: 2, identifier: 'medicine' },
+    { id: 5, identifier: 'berries' },
     { id: 4, identifier: 'machines' },
     { id: 7, identifier: 'battle' },
   ],
   item_categories: [
+    { id: 3, pocket_id: 5, identifier: 'medicine' },
     { id: 27, pocket_id: 2, identifier: 'healing' },
     { id: 37, pocket_id: 4, identifier: 'all-machines' },
     { id: 44, pocket_id: 7, identifier: 'mega-stones' },
@@ -569,8 +585,82 @@ export const FIXTURE_CSVS: Record<string, Row[]> = {
       fling_power: null,
       fling_effect_id: null,
     },
+    {
+      id: 132,
+      identifier: 'oran-berry',
+      category_id: 3,
+      cost: 80,
+      fling_power: 10,
+      fling_effect_id: 3,
+    },
   ],
-  item_names: [{ item_id: 17, local_language_id: EN, name: 'Potion' }],
+  item_names: [
+    { item_id: 17, local_language_id: EN, name: 'Potion' },
+    { item_id: 132, local_language_id: EN, name: 'Oran Berry' },
+    { item_id: 328, local_language_id: EN, name: 'TM24' },
+  ],
+  item_prose: [
+    {
+      item_id: 17,
+      local_language_id: EN,
+      short_effect: 'Restores 20 [HP]{mechanic:hp}.',
+      effect: 'Used on a party Pokémon: restores 20 HP.',
+    },
+    {
+      item_id: 328,
+      local_language_id: EN,
+      short_effect: 'Teaches Water Gun to a compatible Pokémon.',
+      effect: 'Teaches Water Gun to a compatible Pokémon.',
+    },
+  ],
+  item_fling_effects: [{ id: 3, identifier: 'berry-effect' }],
+  item_fling_effect_prose: [
+    { item_fling_effect_id: 3, local_language_id: EN, effect: 'Activates the berry’s effect.' },
+  ],
+  item_flags: [{ id: 5, identifier: 'holdable' }],
+  item_flag_prose: [
+    {
+      item_flag_id: 5,
+      local_language_id: EN,
+      name: 'Holdable',
+      description: 'Can be held by a Pokémon',
+    },
+  ],
+  item_flag_map: [{ item_id: 132, item_flag_id: 5 }],
+  item_game_indices: [
+    ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((gen) => ({
+      item_id: 17,
+      generation_id: gen,
+      game_index: 17,
+    })),
+    ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((gen) => ({
+      item_id: 328,
+      generation_id: gen,
+      game_index: 24,
+    })),
+    ...[3, 9].map((gen) => ({ item_id: 132, generation_id: gen, game_index: 139 })),
+    { item_id: 660, generation_id: 6, game_index: 660 },
+  ],
+  berry_firmness: [{ id: 5, identifier: 'super-hard' }],
+  berry_firmness_names: [{ berry_firmness_id: 5, local_language_id: EN, name: 'Super Hard' }],
+  berries: [
+    {
+      id: 7,
+      item_id: 132,
+      firmness_id: 5,
+      natural_gift_power: 60,
+      natural_gift_type_id: 4,
+      size: 35,
+      max_harvest: 5,
+      growth_time: 4,
+      soil_dryness: 15,
+      smoothness: 20,
+    },
+  ],
+  berry_flavors: [
+    { berry_id: 7, contest_type_id: 1, flavor: 10 },
+    { berry_id: 7, contest_type_id: 4, flavor: 0 },
+  ],
   machines: [{ machine_number: 24, version_group_id: 1, item_id: 328, move_id: 85 }],
 
   // Breeding, growth, evolution (RF02.2 / RF02.5)
@@ -624,6 +714,13 @@ export const FIXTURE_CSVS: Record<string, Row[]> = {
   // Abilities prose (RF02.2 sheet)
   ability_prose: [
     {
+      ability_id: 34,
+      local_language_id: EN,
+      short_effect: 'Doubles Speed during strong sunlight.',
+      effect:
+        'Doubles Speed during [strong sunlight]{mechanic:strong-sunlight}.\n\nOverworld: A fictional field effect.',
+    },
+    {
       ability_id: 65,
       local_language_id: EN,
       short_effect: 'Strengthens [grass]{type:grass} moves to 1.5× in a pinch.',
@@ -647,9 +744,20 @@ export const FIXTURE_CSVS: Record<string, Row[]> = {
   ],
 
   // Wild encounters (RF02.7): Pikachu in Viridian Forest in Red and Blue.
-  locations: [{ id: 155, region_id: 1, identifier: 'viridian-forest' }],
+  locations: [
+    { id: 70, region_id: 1, identifier: 'cinnabar-island' },
+    { id: 86, region_id: 1, identifier: 'pallet-town' },
+    { id: 155, region_id: 1, identifier: 'viridian-forest' },
+  ],
   location_names: [
+    { location_id: 70, local_language_id: EN, name: 'Cinnabar Island', subtitle: null },
+    { location_id: 86, local_language_id: EN, name: 'Pallet Town', subtitle: null },
     { location_id: 155, local_language_id: EN, name: 'Viridian Forest', subtitle: null },
+  ],
+  location_game_indices: [
+    { location_id: 86, generation_id: 1, game_index: 0 },
+    { location_id: 155, generation_id: 1, game_index: 51 },
+    { location_id: 155, generation_id: 1, game_index: 52 },
   ],
   location_areas: [{ id: 321, location_id: 155, game_index: 1, identifier: null }],
   location_area_prose: [{ location_area_id: 321, local_language_id: EN, name: '' }],
@@ -735,20 +843,30 @@ export function writeFixtureCsvs(dir: string): void {
 }
 
 /**
- * Upstream listing (`file`) plus the committed pack listings (`packDir`): every source lists
- * Charizard, Pikachu, Mega Charizard X (except 3D) and a non-Pokémon file.
+ * Upstream listing (`file`) plus the committed pack listings (`packDir`): every Pokémon source
+ * lists Charizard, Pikachu, Mega Charizard X (except 3D) and a non-Pokémon file; the item icon
+ * source lists Potion, TM24 and an unknown item.
  */
 export function writeFixtureMediaListing(file: string, packDir: string): void {
   const dirs: Record<string, [string, number][]> = {};
   const packs: Record<string, MediaListing> = {};
   for (const source of MEDIA_SOURCES) {
-    const entries: [string, number][] = [
-      [`25.${source.format}`, 1000],
-      [`6.${source.format}`, 2000],
-      [`egg.${source.format}`, 10],
-    ];
+    const entries: [string, number][] =
+      source.entity === 'item'
+        ? [
+            ['potion.png', 300],
+            ['tm24.png', 200],
+            ['unknown-item.png', 10],
+          ]
+        : [
+            [`25.${source.format}`, 1000],
+            [`6.${source.format}`, 2000],
+            [`egg.${source.format}`, 10],
+          ];
     // The Mega has no 3D (Showdown) sprite at the pinned commit.
-    if (source.style !== '3d') entries.push([`10034.${source.format}`, 3000]);
+    if (source.style !== '3d' && source.entity !== 'item') {
+      entries.push([`10034.${source.format}`, 3000]);
+    }
     const key = `${source.repo}/${source.dir}`;
     if (source.pack) {
       const pack = (packs[source.pack] ??= { repos: {}, dirs: {} });
@@ -791,9 +909,14 @@ export const FIXTURE_CURATED: Record<string, unknown> = {
     type_i18n: { fire: { name: 'Fogo' }, electric: { name: 'Elétrico' } },
     stat_i18n: { 'special-attack': { name: 'Atq. Esp.' } },
     nature_i18n: { adamant: { name: 'Firme' } },
+    move_damage_class_i18n: { physical: { name: 'Físico' }, special: { name: 'Especial' } },
   },
   'search-aliases.json': { pokemon: { pikachu: ['rato eletrico'] } },
   'ps-id-overrides.json': { pokemon: {} },
+  'ability-overworld.json': {
+    blaze: { en: 'A fictional field effect for tests.', 'pt-BR': 'Um efeito de campo fictício.' },
+  },
+  'location-kinds.json': { 'cinnabar-island': 'city' },
 };
 
 export function writeFixtureCurated(dir: string): void {

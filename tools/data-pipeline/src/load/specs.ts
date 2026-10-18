@@ -380,6 +380,13 @@ export const TABLE_SPECS: readonly TableSpec[] = [
   names('item_names', 'item_i18n', 'item_id', 'item_id'),
   prose('item_prose', 'item_prose_i18n', 'item_id', 'item_id'),
   junction('item_flag_map', 'item_flag_map', { item_id: 'item_id', flag_id: 'item_flag_id' }),
+  {
+    ...junction('item_game_indices', 'item_generations', {
+      item_id: 'item_id',
+      generation_id: 'generation_id',
+    }),
+    orIgnore: true,
+  },
   entity('berry_firmness', 'berry_firmness'),
   names('berry_firmness_names', 'berry_firmness_i18n', 'firmness_id', 'berry_firmness_id'),
   junction('berries', 'berries', {
@@ -412,6 +419,14 @@ export const TABLE_SPECS: readonly TableSpec[] = [
       subtitle: str('subtitle'),
     },
     required: ['lang', 'name'],
+  },
+  {
+    // A location can have several game indices in one generation.
+    ...junction('location_game_indices', 'location_generations', {
+      location_id: 'location_id',
+      generation_id: 'generation_id',
+    }),
+    orIgnore: true,
   },
   {
     csv: 'location_areas',

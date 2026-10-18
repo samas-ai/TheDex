@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +23,7 @@ import { useAsync } from '../../../shared/hooks/useAsync';
 import { useTheme } from '../../../shared/theme/ThemeProvider';
 import { Sheet } from '../../../shared/ui/Sheet';
 import {
+  Button,
   Card,
   Chip,
   InfoRow,
@@ -235,9 +237,23 @@ function AbilitySheet({
               <ThemedText>{detail.effect ?? detail.shortEffect}</ThemedText>
             </Section>
           ) : null}
+          {detail.overworldEffect ? (
+            <Section title={t('profile.ability.overworld')}>
+              <ThemedText>{detail.overworldEffect}</ThemedText>
+            </Section>
+          ) : null}
           <ThemedText variant="caption" color={theme.colors.textMuted}>
             {t('profile.ability.introduced', { number: detail.generationId })}
           </ThemedText>
+          <Button
+            label={t('profile.ability.open')}
+            onPress={() => {
+              onClose();
+              router.push(`/ability/${detail.id}`);
+            }}
+            color={accent.base}
+            textColor={accent.onBase}
+          />
         </View>
       ) : null}
     </Sheet>

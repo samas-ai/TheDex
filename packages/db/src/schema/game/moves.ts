@@ -90,6 +90,8 @@ export const moves = sqliteTable(
     zPower: integer('z_power'),
     /** Z-Move effect for status moves (e.g. `clearnegativeboost`, `heal`). */
     zEffect: text('z_effect'),
+    /** Z-Move stat boosts for status moves, JSON keyed by stat identifier (`{"speed":1}`). */
+    zBoosts: text('z_boosts'),
     /** Max Move base power when this move is used as Max. */
     maxPower: integer('max_power'),
   },
@@ -196,6 +198,22 @@ export const moveVariants = sqliteTable(
     index('move_variants_base_idx').on(t.baseMoveId),
   ],
 );
+
+/**
+ * G-Max Moves (RF03.4). PokeAPI has none, so they come from @pkmn/dex with their English
+ * name and description; each replaces the Max Move of its type for one Gigantamax variety.
+ */
+export const gmaxMoves = sqliteTable('gmax_moves', {
+  psId: text('ps_id').primaryKey(),
+  name: text('name').notNull(),
+  typeId: integer('type_id')
+    .notNull()
+    .references(() => types.id),
+  pokemonId: integer('pokemon_id').references(() => pokemon.id),
+  /** Fixed base power (G-Max Drum Solo, Fireball, Hydrosnipe); null = from the base move. */
+  power: integer('power'),
+  description: text('description'),
+});
 
 /** Learnsets — the largest table. */
 export const pokemonMoves = sqliteTable(

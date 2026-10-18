@@ -12,9 +12,10 @@ import type { SqlValue } from '../values';
 
 /**
  * media_sources + media_assets (RNF02): for each style/variant, which `<pokemon id>.<ext>`
- * files exist at the pinned sprites/cries commits and how large they are. The app builds
- * download URLs from these rows — nothing is hard-coded in the UI. Packs hosted by TheDex
- * (cry-aac) come from their committed listing (`pnpm media:pack`).
+ * files exist at the pinned sprites/cries commits and how large they are; item_icons does the
+ * same for `<item identifier>.png` (RF05.2). The app builds download URLs from these rows —
+ * nothing is hard-coded in the UI. Packs hosted by TheDex (cry-aac) come from their committed
+ * listing (`pnpm media:pack`).
  */
 export function deriveMedia(ctx: BuildContext): void {
   const file = ctx.options.mediaListingFile;
@@ -55,18 +56,30 @@ export function deriveMedia(ctx: BuildContext): void {
   const pokemonIds = new Set(
     ctx.all<{ id: number }>('SELECT id FROM pokemon').map((row) => row.id),
   );
+  const itemIds = new Map(
+    ctx
+      .all<{ id: number; identifier: string }>('SELECT id, identifier FROM items')
+      .map((row) => [row.identifier, row.id]),
+  );
   const sources: SqlValue[][] = [];
   const assets: SqlValue[][] = [];
+  const icons: SqlValue[][] = [];
   for (const source of MEDIA_SOURCES) {
     const entries = listingOf(source).dirs[listingKey(source.repo, source.dir)];
     if (!entries) {
       throw new Error(`Media listing lacks ${source.repo}/${source.dir} (${source.style})`);
     }
     sources.push([source.style, source.variant, mediaBaseUrl(source), source.format]);
-    const pattern = new RegExp(`^(\\d+)\\.${source.format}$`);
+    const extension = `.${source.format}`;
     for (const [name, bytes] of entries) {
-      const id = Number(pattern.exec(name)?.[1]);
-      if (pokemonIds.has(id)) assets.push([id, source.style, source.variant, name, bytes]);
+      if (!name.endsWith(extension)) continue;
+      const stem = name.slice(0, -extension.length);
+      if (source.entity === 'item') {
+        const id = itemIds.get(stem);
+        if (id !== undefined) icons.push([id, name, bytes]);
+      } else if (/^\d+$/.test(stem) && pokemonIds.has(Number(stem))) {
+        assets.push([Number(stem), source.style, source.variant, name, bytes]);
+      }
     }
   }
   ctx.insert('media_sources', ['style', 'variant', 'base_url', 'format'], sources);
@@ -75,5 +88,8 @@ export function deriveMedia(ctx: BuildContext): void {
     ['pokemon_id', 'style', 'variant', 'path', 'bytes'],
     assets,
   );
-  ctx.log(`  media_assets: ${inserted} files in ${sources.length} sources`);
+  const iconCount = ctx.insert('item_icons', ['item_id', 'path', 'bytes'], icons);
+  ctx.log(
+    `  media_assets: ${inserted} files, item_icons: ${iconCount}, in ${sources.length} sources`,
+  );
 }

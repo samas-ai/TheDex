@@ -1,5 +1,6 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { getPokemonMoves, type LearnsetMove, type LearnTab, type PokemonProfile } from '@thedex/db';
 import { DAMAGE_CLASS_COLORS, SPACING, type TypeAccent } from '@thedex/ui-tokens';
@@ -71,7 +72,15 @@ function MoveRow({ move }: { move: LearnsetMove }) {
       ? DAMAGE_CLASS_COLORS[move.damageClass as keyof typeof DAMAGE_CLASS_COLORS]
       : theme.colors.border;
   return (
-    <View style={[styles.row, { borderBottomColor: theme.colors.border }]}>
+    <Pressable
+      onPress={() => router.push(`/move/${move.moveId}`)}
+      accessibilityRole="button"
+      accessibilityLabel={move.name}
+      style={({ pressed }) => [
+        styles.row,
+        { borderBottomColor: theme.colors.border, opacity: pressed ? 0.6 : 1 },
+      ]}
+    >
       {lead !== null ? (
         <ThemedText variant="caption" muted style={styles.lead}>
           {lead}
@@ -89,7 +98,7 @@ function MoveRow({ move }: { move: LearnsetMove }) {
           </ThemedText>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

@@ -59,7 +59,10 @@ function ThemedApp() {
                 headerTintColor: theme.colors.text,
               }}
             >
-              <Stack.Screen name="index" options={{ title: t('nav.pokedex') }} />
+              <Stack.Screen
+                name="(tabs)"
+                options={{ headerShown: false, title: t('nav.pokedex') }}
+              />
               <Stack.Screen
                 name="game"
                 options={{ presentation: 'modal', title: t('nav.selectGame') }}

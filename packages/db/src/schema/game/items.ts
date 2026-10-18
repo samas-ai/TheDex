@@ -1,5 +1,5 @@
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { games, languages } from './core';
+import { games, generations, languages } from './core';
 import { describedNameTable, nameTable, proseTable } from './helpers';
 import { locationAreas } from './locations';
 import { flavors, types } from './misc';
@@ -56,7 +56,10 @@ export const items = sqliteTable(
     categoryId: integer('category_id')
       .notNull()
       .references(() => itemCategories.id),
-    /** held | berry | machine | medicine | ball | evolution | treasure | key | other (Phase 3). */
+    /**
+     * Item Dex group (RF05.1), derived from the category: held | berry | machine | medicine |
+     * ball | evolution | treasure | key | other. Filled for every item (data:validate).
+     */
     appGroup: text('app_group'),
     /** Buy price; sell price is half (RF05.2). */
     cost: integer('cost'),
@@ -66,6 +69,30 @@ export const items = sqliteTable(
   (t) => [index('items_category_idx').on(t.categoryId), index('items_ps_id_idx').on(t.psId)],
 );
 export const itemI18n = nameTable('item_i18n', 'item_id', () => items.id);
+
+/** Generations whose games have the item (PokeAPI item_game_indices). */
+export const itemGenerations = sqliteTable(
+  'item_generations',
+  {
+    itemId: integer('item_id')
+      .notNull()
+      .references(() => items.id),
+    generationId: integer('generation_id')
+      .notNull()
+      .references(() => generations.id),
+  },
+  (t) => [primaryKey({ columns: [t.itemId, t.generationId] })],
+);
+
+/** Item icon at the pinned sprites commit (`media_sources` style `item`, RF05.2). */
+export const itemIcons = sqliteTable('item_icons', {
+  itemId: integer('item_id')
+    .primaryKey()
+    .references(() => items.id),
+  /** File name relative to the source's base_url (e.g. `master-ball.png`). */
+  path: text('path').notNull(),
+  bytes: integer('bytes'),
+});
 export const itemProseI18n = proseTable('item_prose_i18n', 'item_id', () => items.id);
 
 export const itemFlagMap = sqliteTable(

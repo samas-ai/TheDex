@@ -16,11 +16,13 @@ import {
 } from './config';
 import { BuildContext, type BuildOptions } from './context';
 import { CURATED_FILES, loadCurated } from './curated';
-import { derivePtBr, deriveSpeciesTags } from './derive/curated';
+import { deriveAbilityOverworld, derivePtBr, deriveSpeciesTags } from './derive/curated';
 import { deriveFormKinds } from './derive/forms';
 import { deriveGames } from './derive/games';
 import { deriveHistory } from './derive/history';
+import { deriveItemGroups } from './derive/items';
 import { dedupeLearnsetsByGame } from './derive/learnsets';
+import { deriveLocationKinds } from './derive/locations';
 import { deriveMedia } from './derive/media';
 import { deriveMoveStats } from './derive/moves';
 import { derivePkmn } from './derive/pkmn';
@@ -95,6 +97,9 @@ export function buildDatabase(options: BuildOptions): BuildReport {
     deriveFormKinds(ctx);
     deriveSpeciesTags(ctx);
     derivePtBr(ctx);
+    deriveAbilityOverworld(ctx);
+    deriveItemGroups(ctx);
+    deriveLocationKinds(ctx);
     if (options.dedupeLearnsets) dedupeLearnsetsByGame(ctx);
     deriveSearch(ctx);
     deriveMedia(ctx);

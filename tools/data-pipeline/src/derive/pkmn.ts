@@ -1,4 +1,4 @@
-import { Dex, type Move, type Species } from '@pkmn/dex';
+import { Dex, type BoostsTable, type Move, type Species } from '@pkmn/dex';
 import type { BuildContext } from '../context';
 import { toPsId, type SqlValue } from '../values';
 
@@ -29,6 +29,26 @@ const FLAG_ALIASES: Readonly<Record<string, string>> = {
   wind: 'wind',
 };
 const NEW_FLAG_NAMES: Readonly<Record<string, string>> = { slicing: 'Slicing', wind: 'Wind' };
+
+/** Showdown boost keys → PokeAPI stat identifiers. */
+const BOOST_STATS: Readonly<Record<string, string>> = {
+  atk: 'attack',
+  def: 'defense',
+  spa: 'special-attack',
+  spd: 'special-defense',
+  spe: 'speed',
+  accuracy: 'accuracy',
+  evasion: 'evasion',
+};
+
+/** Z-Move boosts of a status move as JSON keyed by stat identifier (`{"speed":1}`). */
+export function zBoostsJson(boost: Partial<BoostsTable> | undefined): string | null {
+  const entries = Object.entries(boost ?? {}).filter(([, stages]) => stages);
+  if (entries.length === 0) return null;
+  return JSON.stringify(
+    Object.fromEntries(entries.map(([stat, stages]) => [BOOST_STATS[stat] ?? stat, stages])),
+  );
+}
 
 interface Row {
   id: number;
@@ -148,6 +168,7 @@ function mapMoves(ctx: BuildContext): PsIndex {
       kind,
       kind ? null : (move.zMove?.basePower ?? null),
       kind ? null : (move.zMove?.effect ?? null),
+      kind ? null : zBoostsJson(move.zMove?.boost),
       kind ? null : (move.maxMove?.basePower ?? null),
       row.id,
     ]);
@@ -157,11 +178,23 @@ function mapMoves(ctx: BuildContext): PsIndex {
     }
   }
   const update = ctx.db.prepare(
-    'UPDATE moves SET variant_kind = ?, z_power = ?, z_effect = ?, max_power = ? WHERE id = ?',
+    'UPDATE moves SET variant_kind = ?, z_power = ?, z_effect = ?, z_boosts = ?, max_power = ? WHERE id = ?',
   );
   ctx.db.transaction(() => updates.forEach((values) => update.run(...values)))();
   ctx.insert('move_flag_map', ['move_id', 'flag_id'], flagRows, { orIgnore: true });
   return index;
+}
+
+/** Z-Crystals exist twice in PokeAPI (`--held`, `--bag`): both get the ID, the held one first. */
+function mapItems(ctx: BuildContext): PsIndex {
+  const rows = ctx.all<Row>(
+    `SELECT id, identifier FROM items ORDER BY identifier LIKE '%--bag', id`,
+  );
+  return new PsIndex('items', 'item', ctx).map(
+    rows,
+    (id) => Dex.items.get(id).exists,
+    (row) => [toPsId(row.identifier.replace(/--(held|bag)$/, ''))],
+  );
 }
 
 function mapSimple(
@@ -211,6 +244,47 @@ function deriveMoveVariants(
   return ctx.insert(
     'move_variants',
     ['variant_move_id', 'kind', 'base_move_id', 'required_item_id', 'pokemon_id'],
+    rows,
+  );
+}
+
+/**
+ * G-Max Moves (RF03.4): PokeAPI has none, so name, type and description come from Showdown.
+ * Each replaces the Max Move of its type for one Gigantamax variety.
+ */
+function deriveGmaxMoves(ctx: BuildContext, pokemon: PsIndex): number {
+  const typeIds = new Map(
+    ctx.all<Row>('SELECT id, identifier FROM types').map((type) => [type.identifier, type.id]),
+  );
+  // Stored IDs may be Showdown aliases (`urshifusinglestrikegmax` for `urshifugmax`).
+  const byCanonicalId = new Map<string, number>();
+  for (const row of ctx.all<{ id: number; ps_id: string }>(
+    'SELECT id, ps_id FROM pokemon WHERE ps_id IS NOT NULL ORDER BY id',
+  )) {
+    const id = Dex.species.get(row.ps_id).id;
+    if (!byCanonicalId.has(id)) byCanonicalId.set(id, row.id);
+  }
+  const gmaxVariety = (species: string) =>
+    byCanonicalId.get(Dex.species.get(`${species}-Gmax`).id) ?? pokemon.get(`${species}gmax`);
+
+  const rows: SqlValue[][] = [];
+  for (const move of Dex.moves.all()) {
+    if (typeof move.isMax !== 'string') continue;
+    const typeId = typeIds.get(move.type.toLowerCase());
+    if (typeId === undefined) continue;
+    rows.push([
+      move.id,
+      move.name,
+      typeId,
+      gmaxVariety(move.isMax),
+      // Showdown stores 10 for "power of the base move's Max Move".
+      move.basePower > 10 ? move.basePower : null,
+      move.desc || move.shortDesc || null,
+    ]);
+  }
+  return ctx.insert(
+    'gmax_moves',
+    ['ps_id', 'name', 'type_id', 'pokemon_id', 'power', 'description'],
     rows,
   );
 }
@@ -266,7 +340,7 @@ export function derivePkmn(ctx: BuildContext): void {
   const forms = mapForms(ctx);
   const moves = mapMoves(ctx);
   const abilities = mapSimple(ctx, 'abilities', 'ability', (id) => Dex.abilities.get(id).exists);
-  const items = mapSimple(ctx, 'items', 'item', (id) => Dex.items.get(id).exists);
+  const items = mapItems(ctx);
   const natures = mapSimple(ctx, 'natures', 'nature', (id) => Dex.natures.get(id).exists);
 
   for (const [label, index] of Object.entries({
@@ -283,5 +357,6 @@ export function derivePkmn(ctx: BuildContext): void {
     }
   }
   ctx.log(`  move_variants: ${deriveMoveVariants(ctx, moves, items, pokemon)}`);
+  ctx.log(`  gmax_moves: ${deriveGmaxMoves(ctx, pokemon)}`);
   ctx.log(`  form_changes: ${deriveFormChanges(ctx, pokemon, items, moves, abilities)}`);
 }

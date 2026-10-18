@@ -1,6 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { listGames, resolveGameContext, type GameContext, type GameSummary } from '@thedex/db';
+import {
+  getGameFeatures,
+  listGames,
+  resolveGameContext,
+  type GameContext,
+  type GameFeatures,
+  type GameSummary,
+} from '@thedex/db';
 import { useAppDatabase } from '../db/DatabaseProvider';
 import { DEFAULT_GAME_IDENTIFIER } from '../settings/settings';
 import { useSettings } from '../settings/SettingsProvider';
@@ -10,6 +17,8 @@ interface GameValue {
   /** Explicit context passed to every game-data query (never a hidden global). */
   readonly ctx: GameContext;
   readonly game: GameSummary;
+  /** What PokeAPI has for the game (learnsets, encounters) and its battle mechanics. */
+  readonly features: GameFeatures;
   /** Every curated game, in display order (RF01.2 selector). */
   readonly games: readonly GameSummary[];
   readonly selectGame: (gameId: number) => void;
@@ -23,7 +32,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const { settings, updateSettings } = useSettings();
   const theme = useTheme();
   const [games, setGames] = useState<readonly GameSummary[] | null>(null);
-  const [ctx, setCtx] = useState<GameContext | null>(null);
+  const [resolved, setResolved] = useState<{ ctx: GameContext; features: GameFeatures } | null>(
+    null,
+  );
   const langKey = settings.gameLangs.join(',');
 
   useEffect(() => {
@@ -35,10 +46,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
         list.find((game) => game.identifier === DEFAULT_GAME_IDENTIFIER) ??
         list[list.length - 1];
       if (!selected) throw new Error('No games in the game database');
-      const resolved = await resolveGameContext(db, selected.id, settings.gameLangs);
+      const ctx = await resolveGameContext(db, selected.id, settings.gameLangs);
+      const features = await getGameFeatures(db, ctx);
       if (cancelled) return;
       setGames(list);
-      setCtx(resolved);
+      setResolved({ ctx, features });
     })();
     return () => {
       cancelled = true;
@@ -47,11 +59,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [db, settings.gameId, langKey]);
 
   const value = useMemo((): GameValue | null => {
-    if (!ctx || !games) return null;
+    if (!resolved || !games) return null;
+    const { ctx, features } = resolved;
     const game = games.find((g) => g.id === ctx.gameId);
     if (!game) return null;
-    return { ctx, game, games, selectGame: (gameId) => updateSettings({ gameId }) };
-  }, [ctx, games, updateSettings]);
+    return { ctx, game, features, games, selectGame: (gameId) => updateSettings({ gameId }) };
+  }, [resolved, games, updateSettings]);
 
   if (!value) {
     return (

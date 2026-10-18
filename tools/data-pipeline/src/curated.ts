@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
+import { LOCATION_KIND_IDS, type LocationKindId } from './derive/locations';
 
 const MECHANICS = ['mega', 'z', 'dynamax', 'tera'] as const;
 export type Mechanic = (typeof MECHANICS)[number];
@@ -27,6 +28,14 @@ const aliasesSchema = z.record(z.string(), z.record(z.string(), z.array(z.string
 
 const overridesSchema = z.record(z.string(), z.record(z.string(), z.string().nullable()));
 
+/** ability identifier → language → effect outside battle (RF04.1). */
+const overworldSchema = z.record(
+  z.string(),
+  z.record(z.string(), z.string().min(1)).refine((texts) => 'en' in texts, 'needs an "en" text'),
+);
+
+const locationKindsSchema = z.record(z.string(), z.enum(LOCATION_KIND_IDS));
+
 export type CuratedGame = z.infer<typeof gamesSchema>['games'][number];
 
 export interface CuratedData {
@@ -39,6 +48,10 @@ export interface CuratedData {
   readonly searchAliases: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>>;
   /** kind → PokeAPI identifier → Showdown ID (null = intentionally unmapped) */
   readonly psIdOverrides: Readonly<Record<string, Readonly<Record<string, string | null>>>>;
+  /** ability identifier → language → effect outside battle */
+  readonly abilityOverworld: Readonly<Record<string, Readonly<Record<string, string>>>>;
+  /** location identifier → Location Dex group, where the identifier rules get it wrong */
+  readonly locationKinds: Readonly<Record<string, LocationKindId>>;
 }
 
 export const CURATED_FILES = [
@@ -47,6 +60,8 @@ export const CURATED_FILES = [
   'i18n-pt-BR.json',
   'search-aliases.json',
   'ps-id-overrides.json',
+  'ability-overworld.json',
+  'location-kinds.json',
 ] as const;
 
 /** Drops `$comment`-style keys so the JSON files can be self-documenting. */
@@ -70,5 +85,7 @@ export function loadCurated(dir: string): CuratedData {
     ptBr: parse(ptBrSchema, dir, 'i18n-pt-BR.json'),
     searchAliases: parse(aliasesSchema, dir, 'search-aliases.json'),
     psIdOverrides: parse(overridesSchema, dir, 'ps-id-overrides.json'),
+    abilityOverworld: parse(overworldSchema, dir, 'ability-overworld.json'),
+    locationKinds: parse(locationKindsSchema, dir, 'location-kinds.json'),
   };
 }

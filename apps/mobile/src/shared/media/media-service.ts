@@ -5,8 +5,13 @@ import {
   getMediaCacheEntry,
   getMediaCacheStats,
   getMediaPackSizes,
+  getItemIcon,
   getMediaSources,
   getPokemonMedia,
+  ITEM_ICON_STYLE,
+  itemIconCacheKey,
+  itemIconSource,
+  listItemIcons,
   listMediaAssets,
   listMediaCacheKeys,
   mediaCacheKey,
@@ -14,6 +19,7 @@ import {
   putMediaCacheEntry,
   touchMediaCacheEntry,
   type AnySQLiteDatabase,
+  type ItemIcon,
   type MediaAsset,
   type MediaCacheStats,
   type MediaPackSize,
@@ -29,12 +35,30 @@ export interface DownloadProgress {
   readonly failed: number;
 }
 
+/** A file to download: a Pokémon asset or an item icon, with its cache key. */
+interface MediaFile {
+  readonly key: string;
+  readonly style: string;
+  readonly variant: string;
+  readonly path: string;
+  readonly bytes: number | null;
+}
+
+const assetFile = (asset: MediaAsset): MediaFile => ({ ...asset, key: mediaCacheKey(asset) });
+const iconFile = (icon: ItemIcon, source: MediaSource): MediaFile => ({
+  key: itemIconCacheKey(icon.itemId),
+  style: source.style,
+  variant: source.variant,
+  path: icon.path,
+  bytes: icon.bytes,
+});
+
 /**
- * The only way the app gets sprites and cries (RNF02). Files are downloaded on demand from the
- * pinned PokeAPI/sprites and PokeAPI/cries commits, or the AAC cry pack on iOS (URLs come from
- * media_sources in the game DB, never from code), stored under the document directory (not
- * purged by the OS) and tracked in thedex-user.db `media_cache`. Offline + not cached = null
- * (placeholder UI).
+ * The only way the app gets sprites, cries and item icons (RNF02). Files are downloaded on
+ * demand from the pinned PokeAPI/sprites and PokeAPI/cries commits, or the AAC cry pack on iOS
+ * (URLs come from media_sources in the game DB, never from code), stored under the document
+ * directory (not purged by the OS) and tracked in thedex-user.db `media_cache`. Offline + not
+ * cached = null (placeholder UI).
  */
 export class MediaService {
   /** Resolved local URIs of this session (avoids a DB round-trip per list row). */
@@ -77,6 +101,18 @@ export class MediaService {
     return this.memory.get(mediaCacheKey({ style, variant, pokemonId })) ?? null;
   }
 
+  /** Already-resolved item icon URI of this session, synchronously. */
+  peekItemIcon(itemId: number): string | null {
+    return this.memory.get(itemIconCacheKey(itemId)) ?? null;
+  }
+
+  /** Local URI of an item icon (RF05.2), downloading it when needed. */
+  async itemIcon(itemId: number): Promise<string | null> {
+    const source = itemIconSource([...this.sources.values()]);
+    const icon = source ? await getItemIcon(this.db, itemId) : null;
+    return source && icon ? this.resolveFile(iconFile(icon, source)) : null;
+  }
+
   /** Local URI of a sprite, downloading it when needed. */
   async sprite(pokemonId: number, style: string, shiny: boolean): Promise<string | null> {
     const assets = await this.assetsOf(pokemonId);
@@ -99,18 +135,22 @@ export class MediaService {
 
   /** Cached URI if present, else download; concurrent calls for one asset share a request. */
   async resolve(asset: MediaAsset): Promise<string | null> {
-    const key = mediaCacheKey(asset);
+    return this.resolveFile(assetFile(asset));
+  }
+
+  private async resolveFile(file: MediaFile): Promise<string | null> {
+    const { key } = file;
     const remembered = this.memory.get(key);
     if (remembered) return remembered;
     let pending = this.inFlight.get(key);
     if (!pending) {
-      pending = this.load(asset, key).finally(() => this.inFlight.delete(key));
+      pending = this.load(file, key).finally(() => this.inFlight.delete(key));
       this.inFlight.set(key, pending);
     }
     return pending;
   }
 
-  private async load(asset: MediaAsset, key: string): Promise<string | null> {
+  private async load(asset: MediaFile, key: string): Promise<string | null> {
     const cached = await getMediaCacheEntry(this.db, key);
     if (cached && new File(cached.localUri).exists) {
       this.memory.set(key, cached.localUri);
@@ -122,7 +162,7 @@ export class MediaService {
     return this.download(asset, key);
   }
 
-  private async download(asset: MediaAsset, key: string): Promise<string | null> {
+  private async download(asset: MediaFile, key: string): Promise<string | null> {
     const source = this.sources.get(`${asset.style}/${asset.variant}`);
     if (!source) return null;
     const [style, variant, name] = localMediaPath(asset) as [string, string, string];
@@ -161,17 +201,20 @@ export class MediaService {
     signal: { readonly aborted: boolean },
   ): Promise<DownloadProgress> {
     const cached = await listMediaCacheKeys(this.db);
-    const pending = (await listMediaAssets(this.db, styles)).filter(
-      (asset) => !cached.has(mediaCacheKey(asset)),
-    );
+    const files = (await listMediaAssets(this.db, styles)).map(assetFile);
+    const iconSource = itemIconSource([...this.sources.values()]);
+    if (styles.includes(ITEM_ICON_STYLE) && iconSource) {
+      files.push(...(await listItemIcons(this.db)).map((icon) => iconFile(icon, iconSource)));
+    }
+    const pending = files.filter((file) => !cached.has(file.key));
     let done = 0;
     let failed = 0;
     onProgress({ done, total: pending.length, failed });
     await runPool(
       pending,
       6,
-      async (asset) => {
-        const uri = await this.resolve(asset);
+      async (file) => {
+        const uri = await this.resolveFile(file);
         done++;
         if (uri === null) failed++;
         onProgress({ done, total: pending.length, failed });

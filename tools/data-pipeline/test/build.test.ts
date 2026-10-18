@@ -90,9 +90,9 @@ describe('database integrity', () => {
   });
 
   it('records metadata and a deterministic data version', () => {
-    expect(report.dataVersion).toMatch(/^2-[0-9a-f]{12}$/);
+    expect(report.dataVersion).toMatch(/^3-[0-9a-f]{12}$/);
     expect(value(`SELECT value FROM meta WHERE key = 'data_version'`)).toBe(report.dataVersion);
-    expect(value('PRAGMA user_version')).toBe(2);
+    expect(value('PRAGMA user_version')).toBe(3);
     expect(dedupedReport.dataVersion).not.toBe(report.dataVersion);
   });
 
@@ -209,6 +209,44 @@ describe('games and curated data', () => {
       value('SELECT kind FROM form_changes WHERE from_pokemon_id = 6 AND to_pokemon_id = 10034'),
     ).toBe('mega');
     expect(value(`SELECT count(*) FROM move_flag_map WHERE move_id = 44`)).toBeGreaterThan(0);
+  });
+
+  it('derives Item Dex groups, item generations and Location Dex kinds', () => {
+    const group = (identifier: string) =>
+      value('SELECT app_group FROM items WHERE identifier = ?', identifier);
+    expect(group('potion')).toBe('medicine');
+    expect(group('charizardite-x')).toBe('held');
+    expect(group('tm24')).toBe('machine');
+    expect(group('oran-berry')).toBe('berry');
+    expect(value('SELECT count(*) FROM items WHERE app_group IS NULL')).toBe(0);
+    expect(value('SELECT count(*) FROM item_generations WHERE item_id = 17')).toBe(9);
+    const kind = (identifier: string) =>
+      value('SELECT location_kind FROM locations WHERE identifier = ?', identifier);
+    expect(kind('pallet-town')).toBe('city');
+    expect(kind('viridian-forest')).toBe('area');
+    // Curated override: no "town" suffix.
+    expect(kind('cinnabar-island')).toBe('city');
+    // Two game indices in one generation collapse into one row.
+    expect(value('SELECT count(*) FROM location_generations WHERE location_id = 155')).toBe(1);
+  });
+
+  it('adds curated overworld effects, Z boosts and G-Max Moves', () => {
+    const overworld = (lang: string) =>
+      value(
+        `SELECT overworld_effect FROM ability_prose_i18n WHERE ability_id = 66 AND lang = ?`,
+        lang,
+      );
+    expect(overworld('en')).toBe('A fictional field effect for tests.');
+    expect(overworld('pt-BR')).toBe('Um efeito de campo fictício.');
+    expect(value(`SELECT z_power FROM moves WHERE id = 85`)).toBe(175);
+    expect(
+      value(`SELECT name FROM move_damage_class_i18n WHERE damage_class_id = 2 AND lang = 'pt-BR'`),
+    ).toBe('Físico');
+    // Fixture types: only the G-Max Moves of fire, electric… types are kept.
+    expect(value(`SELECT name FROM gmax_moves WHERE ps_id = 'gmaxwildfire'`)).toBe(
+      'G-Max Wildfire',
+    );
+    expect(value(`SELECT count(*) FROM gmax_moves WHERE ps_id = 'gmaxcannonade'`)).toBe(0);
   });
 
   it('stores each flavor text once and cleans line breaks', () => {

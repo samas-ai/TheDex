@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EvolutionMethod, EvolutionNode, LearnsetMove } from '@thedex/db';
-import {
-  defensiveGroups,
-  describeEvolutionMethod,
-  evolutionStages,
-  movesByTab,
-  multiplierLabel,
-  statRows,
-} from './profile-logic';
+import { describeEvolutionMethod, evolutionStages, movesByTab, statRows } from './profile-logic';
 
 const method = (patch: Partial<EvolutionMethod>): EvolutionMethod => ({
   trigger: 'level-up',
@@ -84,24 +77,6 @@ describe('statRows (RF02.4)', () => {
     expect(rows.map((r) => r.stat)).toEqual(['hp', 'attack', 'defense', 'special', 'speed']);
     expect(rows[3]?.base).toBe(85);
     expect(statRows(charizard, 1)[3]?.base).toBe(109);
-  });
-});
-
-describe('defensiveGroups (RF02.3)', () => {
-  it('groups attacking types by multiplier, respecting the generation', () => {
-    const gen9 = defensiveGroups(['fire', 'flying'], 9);
-    expect(gen9[0]).toEqual({ multiplier: 4, types: ['rock'] });
-    expect(gen9.find((g) => g.multiplier === 0)?.types).toEqual(['ground']);
-    // Gen 1 has no Steel/Dark/Fairy attackers.
-    const gen1 = defensiveGroups(['fire', 'flying'], 1);
-    expect(gen1.flatMap((g) => g.types)).toHaveLength(15);
-    expect(defensiveGroups(['stellar'], 9)).toEqual([]);
-  });
-
-  it('labels fractions', () => {
-    expect(multiplierLabel(0.5)).toBe('×½');
-    expect(multiplierLabel(0.25)).toBe('×¼');
-    expect(multiplierLabel(4)).toBe('×4');
   });
 });
 

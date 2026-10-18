@@ -11,8 +11,14 @@ import {
   type Generation,
 } from '@thedex/engine';
 import {
+  getAbilityHolders,
   getEvolutionChain,
+  getLocationEncounters,
+  getMoveDetail,
+  getMoveLearners,
   getPokemonMoves,
+  listMoves,
+  listNatures,
   listPokedex,
   resolveGameContext,
   searchQuery,
@@ -395,6 +401,116 @@ export async function validateDatabase(options: ValidateOptions): Promise<Valida
       check(name, actual === expected, `expected ${String(expected)}, got ${String(actual)}`);
     }
 
+    // --- Phase 3: Item, Location, Ability and Move Dex data -----------------------------------
+    const itemGroup = (identifier: string) =>
+      scalar<string>(db, 'SELECT app_group FROM items WHERE identifier = ?', identifier);
+    const locationKind = (identifier: string) =>
+      scalar<string>(db, 'SELECT location_kind FROM locations WHERE identifier = ?', identifier);
+    const phase3Facts: [string, unknown, unknown][] = [
+      [
+        'No item without an Item Dex group',
+        scalar(db, 'SELECT count(*) FROM items WHERE app_group IS NULL'),
+        0,
+      ],
+      ['Leftovers is a held item', itemGroup('leftovers'), 'held'],
+      ['X Attack is a battle item', itemGroup('x-attack'), 'held'],
+      ['Master Ball is a ball', itemGroup('master-ball'), 'ball'],
+      ['Oran Berry is a berry', itemGroup('oran-berry'), 'berry'],
+      ['TM01 is a machine', itemGroup('tm01'), 'machine'],
+      ['Potion is medicine', itemGroup('potion'), 'medicine'],
+      ['Fire Stone is an evolution item', itemGroup('fire-stone'), 'evolution'],
+      ['Nugget is a treasure', itemGroup('nugget'), 'treasure'],
+      ['Bicycle is a key item', itemGroup('bicycle'), 'key'],
+      [
+        'All but a handful of items have an icon',
+        scalar(
+          db,
+          'SELECT count(*) < 10 FROM items i WHERE NOT EXISTS (SELECT 1 FROM item_icons c WHERE c.item_id = i.id)',
+        ),
+        1,
+      ],
+      [
+        'Potion exists in Gen 9 games',
+        scalar(
+          db,
+          'SELECT count(*) FROM item_generations WHERE item_id = 17 AND generation_id = 9',
+        ),
+        1,
+      ],
+      [
+        'No location without a Location Dex group',
+        scalar(db, 'SELECT count(*) FROM locations WHERE location_kind IS NULL'),
+        0,
+      ],
+      ['Celadon City is a city', locationKind('celadon-city'), 'city'],
+      ['Mesagoza is a city (curated)', locationKind('mesagoza'), 'city'],
+      ['Route 1 is a route', locationKind('kanto-route-1'), 'route'],
+      ['Mt. Moon is a cave', locationKind('mt-moon'), 'cave'],
+      ['Lake Verity is water', locationKind('lake-verity'), 'water'],
+      ['Pokémon Tower is a building', locationKind('pokemon-tower'), 'building'],
+      [
+        'Viridian Forest exists in Gen 1 games',
+        scalar(
+          db,
+          'SELECT count(*) FROM location_generations WHERE location_id = 155 AND generation_id = 1',
+        ),
+        1,
+      ],
+      [
+        'Static has a pt-BR effect outside battle',
+        scalar(
+          db,
+          `SELECT count(*) FROM ability_prose_i18n
+           WHERE ability_id = 9 AND lang = 'pt-BR' AND overworld_effect IS NOT NULL`,
+        ),
+        1,
+      ],
+      [
+        'At least 30 curated effects outside battle',
+        scalar(
+          db,
+          `SELECT count(DISTINCT ability_id) >= 30 FROM ability_prose_i18n
+           WHERE lang = 'pt-BR' AND overworld_effect IS NOT NULL`,
+        ),
+        1,
+      ],
+      [
+        'Physical is "Físico" in pt-BR',
+        scalar<string>(
+          db,
+          `SELECT name FROM move_damage_class_i18n WHERE damage_class_id = 2 AND lang = 'pt-BR'`,
+        ),
+        'Físico',
+      ],
+      [
+        'Thunderbolt Z-Move power 175',
+        scalar(db, `SELECT z_power FROM moves WHERE identifier = 'thunderbolt'`),
+        175,
+      ],
+      [
+        'Z-Thunder Wave raises Sp. Def',
+        scalar<string>(db, `SELECT z_boosts FROM moves WHERE identifier = 'thunder-wave'`),
+        '{"special-defense":1}',
+      ],
+      [
+        'Every type has a Z-Move with its Z-Crystal',
+        scalar(
+          db,
+          `SELECT count(*) FROM move_variants WHERE kind = 'z' AND required_item_id IS NOT NULL`,
+        ),
+        18,
+      ],
+      [
+        'Every G-Max Move has its Gigantamax Pokémon',
+        scalar(db, 'SELECT count(*) FROM gmax_moves WHERE pokemon_id IS NULL'),
+        0,
+      ],
+      ['33 G-Max Moves', scalar(db, 'SELECT count(*) FROM gmax_moves'), 33],
+    ];
+    for (const [name, actual, expected] of phase3Facts) {
+      check(name, actual === expected, `expected ${String(expected)}, got ${String(actual)}`);
+    }
+
     const app = openAppLikeConnection(options.dbFile);
     try {
       const orm = drizzle(app);
@@ -450,6 +566,68 @@ export async function validateDatabase(options: ValidateOptions): Promise<Valida
         ],
       ];
       for (const [name, ok, detail] of repoFacts) check(name, ok, detail);
+
+      const rb = await resolveGameContext(orm, 'red-blue', ['en']);
+      const swsh = await resolveGameContext(orm, 'sword-shield', ['en']);
+      const svMoves = await listMoves(orm, sv);
+      const swshMax = (await listMoves(orm, swsh)).filter((m) => m.variantKind === 'max');
+      const thunderbolt = await getMoveDetail(orm, 85, sv);
+      const learners = await getMoveLearners(orm, 85, sv);
+      const intimidate = await getAbilityHolders(orm, 22, sv);
+      const mtMoon = await getLocationEncounters(
+        orm,
+        scalar<number>(db, `SELECT id FROM locations WHERE identifier = 'mt-moon'`),
+        rb,
+      );
+      const natures = await listNatures(orm, sv);
+      const phase3Repos: [string, boolean, string][] = [
+        ['Scarlet/Violet Move Dex has 800+ moves', svMoves.length >= 800, `${svMoves.length}`],
+        [
+          'No Z-Move or Max Move in the Scarlet/Violet Move Dex',
+          svMoves.every((m) => m.variantKind === null),
+          svMoves
+            .filter((m) => m.variantKind)
+            .map((m) => m.identifier)
+            .join(', '),
+        ],
+        [
+          'The Sword/Shield Move Dex lists the 19 Max Moves',
+          swshMax.length === 19,
+          `${swshMax.length}`,
+        ],
+        [
+          'Thunderbolt: a TM in Scarlet/Violet, Gigavolt Havoc and Max Lightning',
+          thunderbolt?.machine?.label.startsWith('TM') === true &&
+            thunderbolt.maxMove?.move?.identifier === 'max-lightning' &&
+            thunderbolt.zMove?.move?.identifier === 'gigavolt-havoc--special',
+          JSON.stringify({
+            machine: thunderbolt?.machine,
+            max: thunderbolt?.maxMove?.move,
+            z: thunderbolt?.zMove?.move,
+          }),
+        ],
+        [
+          'Pikachu learns Thunderbolt in Scarlet/Violet (move learners)',
+          learners.some((l) => l.pokemonId === 25),
+          `${learners.length} learners`,
+        ],
+        [
+          'Gyarados has Intimidate in Scarlet/Violet (ability holders)',
+          intimidate.some((h) => h.pokemonId === 130 && !h.isHidden),
+          `${intimidate.length} holders`,
+        ],
+        [
+          'Zubat lives in Mt. Moon in Red/Blue (location encounters)',
+          mtMoon.some((area) => area.encounters.some((e) => e.pokemon.id === 41)),
+          `${mtMoon.length} areas`,
+        ],
+        [
+          '25 natures, 5 of them neutral',
+          natures.length === 25 && natures.filter((n) => n.increased === null).length === 5,
+          `${natures.length}`,
+        ],
+      ];
+      for (const [name, ok, detail] of phase3Repos) check(name, ok, detail);
     } finally {
       app.close();
     }

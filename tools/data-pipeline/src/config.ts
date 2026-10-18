@@ -28,7 +28,12 @@ export interface MediaSourceConfig {
   readonly style: string;
   readonly variant: string;
   readonly repo: MediaRepo;
-  /** Directory inside the repo; files are named `<pokemon id>.<format>`. */
+  /**
+   * What the files depict: Pokémon varieties (`<pokemon id>.<format>`, media_assets, the
+   * default) or items (`<item identifier>.<format>`, item_icons).
+   */
+  readonly entity?: 'pokemon' | 'item';
+  /** Directory inside the repo; files are named after the entity (see `entity`). */
   readonly dir: string;
   readonly format: 'png' | 'gif' | 'ogg' | 'm4a';
   /**
@@ -41,7 +46,8 @@ export interface MediaSourceConfig {
 /**
  * Media styles → repo directories. `3d` uses Showdown's animated GIFs (rendered from the 3D
  * models). Cries are `.ogg` (Vorbis, some MP3), which iOS cannot play: `cry-aac` is the same
- * set transcoded to AAC (`.m4a`), picked by the app on iOS.
+ * set transcoded to AAC (`.m4a`), picked by the app on iOS. `item` holds the bag icons of
+ * the Item Dex (RF05.2).
  */
 export const MEDIA_SOURCES: readonly MediaSourceConfig[] = [
   {
@@ -111,6 +117,14 @@ export const MEDIA_SOURCES: readonly MediaSourceConfig[] = [
     dir: 'cries/pokemon/legacy',
     format: 'm4a',
     pack: 'cries-aac',
+  },
+  {
+    style: 'item',
+    variant: 'default',
+    repo: 'sprites',
+    entity: 'item',
+    dir: 'sprites/items',
+    format: 'png',
   },
 ];
 
@@ -189,6 +203,7 @@ export const POKEAPI_CSV_FILES = [
   'item_flavor_text',
   'item_fling_effect_prose',
   'item_fling_effects',
+  'item_game_indices',
   'item_names',
   'item_pocket_names',
   'item_pockets',
@@ -197,6 +212,7 @@ export const POKEAPI_CSV_FILES = [
   'languages',
   'location_area_prose',
   'location_areas',
+  'location_game_indices',
   'location_names',
   'locations',
   'machines',

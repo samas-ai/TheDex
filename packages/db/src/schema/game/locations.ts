@@ -1,5 +1,5 @@
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { languages, regions, versionGroups, versions } from './core';
+import { generations, languages, regions, versionGroups, versions } from './core';
 import { nameTable } from './helpers';
 import { pokemon } from './pokemon';
 
@@ -9,7 +9,10 @@ export const locations = sqliteTable(
     id: integer('id').primaryKey(),
     identifier: text('identifier').notNull(),
     regionId: integer('region_id').references(() => regions.id),
-    /** city | route | cave | water | building | area (Phase 3 heuristic). */
+    /**
+     * Location Dex group (RF06.1): city | route | cave | water | building | area. Derived from
+     * the identifier plus curated overrides; filled for every location (data:validate).
+     */
     locationKind: text('location_kind'),
   },
   (t) => [index('locations_region_idx').on(t.regionId)],
@@ -28,6 +31,20 @@ export const locationI18n = sqliteTable(
     subtitle: text('subtitle'),
   },
   (t) => [primaryKey({ columns: [t.locationId, t.lang] })],
+);
+
+/** Generations whose games have the location (PokeAPI location_game_indices). */
+export const locationGenerations = sqliteTable(
+  'location_generations',
+  {
+    locationId: integer('location_id')
+      .notNull()
+      .references(() => locations.id),
+    generationId: integer('generation_id')
+      .notNull()
+      .references(() => generations.id),
+  },
+  (t) => [primaryKey({ columns: [t.locationId, t.generationId] })],
 );
 
 export const locationAreas = sqliteTable(

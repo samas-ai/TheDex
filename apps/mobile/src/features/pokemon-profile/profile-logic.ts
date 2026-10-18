@@ -1,12 +1,4 @@
-import {
-  assertGeneration,
-  defensiveMultipliers,
-  isTypeName,
-  statBounds,
-  type CombinedMultiplier,
-  type StatName,
-  type TypeName,
-} from '@thedex/engine';
+import { assertGeneration, statBounds, type StatName } from '@thedex/engine';
 import type {
   EvolutionMethod,
   EvolutionNode,
@@ -54,36 +46,6 @@ export function statRows(stats: PokemonStats, generationId: number): StatRow[] {
     };
     return { stat, base, lv50: at(50), lv100: at(100) };
   });
-}
-
-// --- Defensive matchups (RF02.3) -------------------------------------------------------------
-
-export const MULTIPLIER_ORDER: readonly CombinedMultiplier[] = [4, 2, 1, 0.5, 0.25, 0];
-
-export interface MatchupGroup {
-  readonly multiplier: CombinedMultiplier;
-  readonly types: readonly TypeName[];
-}
-
-/** Attacking types grouped by the damage multiplier they deal to this typing in `gen`. */
-export function defensiveGroups(types: readonly string[], generationId: number): MatchupGroup[] {
-  const gen = assertGeneration(generationId);
-  const defending = types.filter(isTypeName);
-  if (defending.length === 0) return [];
-  const multipliers = defensiveMultipliers(defending, gen);
-  return MULTIPLIER_ORDER.map((multiplier) => ({
-    multiplier,
-    types: (Object.entries(multipliers) as [TypeName, CombinedMultiplier][])
-      .filter(([, value]) => value === multiplier)
-      .map(([type]) => type),
-  })).filter((group) => group.types.length > 0);
-}
-
-/** `×4`, `×½`, `×¼`, `×0`. */
-export function multiplierLabel(multiplier: CombinedMultiplier): string {
-  if (multiplier === 0.5) return '×½';
-  if (multiplier === 0.25) return '×¼';
-  return `×${multiplier}`;
 }
 
 // --- Evolution (RF02.5) ------------------------------------------------------------------------

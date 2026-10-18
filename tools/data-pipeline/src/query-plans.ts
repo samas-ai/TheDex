@@ -2,9 +2,17 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import {
   getAbilityDetail,
+  getAbilityHolders,
   getEvolutionChain,
   getFlavorTexts,
+  getGameFeatures,
+  getItemDetail,
+  getItemIcon,
   getLearnset,
+  getLocation,
+  getLocationEncounters,
+  getMoveDetail,
+  getMoveLearners,
   getPokemon,
   getPokemonEncounters,
   getPokemonForms,
@@ -12,8 +20,17 @@ import {
   getPokemonMoves,
   getPokemonProfile,
   listAbilities,
+  listAbilityDex,
+  listDamageClasses,
   listGamePokemon,
+  listGmaxMoves,
+  listItems,
+  listLocationRegions,
+  listLocations,
+  listMoves,
+  listNatures,
   listPokedex,
+  MOVE_SORT_KEYS,
   POKEDEX_SORT_KEYS,
   resolveGameContext,
   searchQuery,
@@ -100,7 +117,9 @@ export function openAppLikeConnection(dataDbFile: string): Database.Database {
 
 /**
  * Runs the hot repository queries (search, Pokédex list with every filter and sort, profile
- * tabs) through a logging Drizzle instance and checks every statement with EXPLAIN QUERY PLAN.
+ * tabs, the Phase 3 encyclopedias) through a logging Drizzle instance and checks every
+ * statement with EXPLAIN QUERY PLAN. The sample ids exist in the real data and the fixtures:
+ * Thunderbolt (85), Potion (17), Viridian Forest (155), Kanto (1).
  */
 export async function checkHotQueryPlans(
   sqlite: Database.Database,
@@ -163,11 +182,39 @@ export async function checkHotQueryPlans(
     const kanto = await resolveGameContext(db, 'red-blue', ['en']).catch(() => ctx);
     await run('getPokemonEncounters', () => getPokemonEncounters(db, sample.pokemonId, kanto));
     await run('getPokemonMedia', () => getPokemonMedia(db, sample.pokemonId));
-    captured.push({
-      label: 'move learners (RF03.3)',
-      sql: 'SELECT DISTINCT pokemon_id, method_id FROM pokemon_moves WHERE move_id = ? AND version_group_id IN (?, ?, ?)',
-      params: [85, ...ctx.versionGroupIds.concat(ctx.versionGroupIds).slice(0, 3)],
-    });
+
+    // Phase 3: Move, Ability, Item, Location, Type and Nature Dex.
+    await run('getGameFeatures', () => getGameFeatures(db, ctx));
+    await run('listDamageClasses', () => listDamageClasses(db, ctx));
+    for (const key of MOVE_SORT_KEYS) {
+      await run(`listMoves sort ${key}`, () =>
+        listMoves(db, ctx, { sort: { key, direction: 'desc' } }),
+      );
+    }
+    await run('listMoves all filters', () =>
+      listMoves(db, ctx, {
+        filters: {
+          typeIds: [13, 10],
+          damageClasses: ['special'],
+          generationIds: [1, 4],
+          learnableOnly: true,
+        },
+      }),
+    );
+    await run('getMoveDetail', () => getMoveDetail(db, 85, ctx));
+    await run('getMoveLearners', () => getMoveLearners(db, 85, ctx));
+    await run('listGmaxMoves', () => listGmaxMoves(db, ctx, 10));
+    await run('listAbilityDex', () => listAbilityDex(db, ctx, { inGameOnly: true }));
+    await run('getAbilityHolders', () => getAbilityHolders(db, 65, ctx));
+    await run('listItems', () => listItems(db, ctx, { inGameOnly: true }));
+    await run('listItems machines', () => listItems(db, ctx, { groups: ['machine'] }));
+    await run('getItemDetail', () => getItemDetail(db, 17, ctx));
+    await run('getItemIcon', () => getItemIcon(db, 17));
+    await run('listLocationRegions', () => listLocationRegions(db, kanto));
+    await run('listLocations', () => listLocations(db, kanto, { regionId: 1, inGameOnly: true }));
+    await run('getLocation', () => getLocation(db, 155, kanto));
+    await run('getLocationEncounters', () => getLocationEncounters(db, 155, kanto));
+    await run('listNatures', () => listNatures(db, ctx));
 
     const violations: PlanViolation[] = [];
     for (const query of captured) {

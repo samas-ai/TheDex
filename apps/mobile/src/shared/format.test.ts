@@ -4,8 +4,10 @@ import {
   dexNumber,
   formatHeight,
   formatPercent,
+  formatPrice,
   formatWeight,
   genderRatio,
+  sellPrice,
 } from './format';
 
 describe('format', () => {
@@ -28,5 +30,19 @@ describe('format', () => {
     expect(genderRatio(1)).toEqual({ female: 12.5, male: 87.5 });
     expect(formatPercent(12.5)).toBe('12.5');
     expect(formatPercent(50)).toBe('50');
+  });
+});
+
+describe('prices (RF05.2)', () => {
+  it('sells at half the buy price; free items cannot be bought or sold', () => {
+    expect(sellPrice(200)).toBe(100);
+    expect(sellPrice(75)).toBe(37);
+    expect(sellPrice(0)).toBeNull();
+    expect(sellPrice(null)).toBeNull();
+  });
+
+  it('formats Pokédollars with the locale grouping', () => {
+    expect(formatPrice(40000, 'en')).toBe('₽40,000');
+    expect(formatPrice(40000, 'pt-BR')).toBe('₽40.000');
   });
 });

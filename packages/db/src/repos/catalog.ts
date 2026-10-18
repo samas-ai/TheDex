@@ -33,6 +33,18 @@ export async function listStats(db: AnySQLiteDatabase, ctx: GameContext): Promis
   );
 }
 
+/** Move categories (physical, special, status) with localized names. */
+export async function listDamageClasses(
+  db: AnySQLiteDatabase,
+  ctx: Pick<GameContext, 'langChain'>,
+): Promise<NamedEntity[]> {
+  return named(
+    (await db.all(sql`
+      SELECT d.id, d.identifier, ${pickI18n('move_damage_class_i18n', 'damage_class_id', sql`d.id`, 'name', ctx.langChain)} AS name
+      FROM move_damage_classes d ORDER BY d.id`)) as Row[],
+  );
+}
+
 /** Generations up to the context generation (species origin filter, RF01.3). */
 export async function listGenerations(
   db: AnySQLiteDatabase,

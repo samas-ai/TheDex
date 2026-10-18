@@ -1,3 +1,4 @@
+import { toggleTypePair } from '../../entities/type/type-matchups';
 import type {
   CaptureStatus,
   PokedexEntry,
@@ -52,15 +53,11 @@ export function activeFilterCount(filters: PokedexFilterState): number {
   );
 }
 
-/** Adds or removes `id`. */
-export function toggle<T>(list: readonly T[], id: T): T[] {
-  return list.includes(id) ? list.filter((item) => item !== id) : [...list, id];
-}
+export { toggle } from '../../shared/toggle';
 
 /** Type filter: at most two types combined; a third replaces the oldest. */
 export function toggleType(typeIds: readonly number[], id: number): number[] {
-  if (typeIds.includes(id)) return typeIds.filter((type) => type !== id);
-  return [...typeIds, id].slice(-2);
+  return toggleTypePair(typeIds, id);
 }
 
 /** Repository query for the UI state. */
@@ -113,13 +110,4 @@ export function sortValue(entry: PokedexEntry, key: PokedexSortKey): number | nu
   }
 }
 
-/**
- * Applies a search (variety ids from `searchQuery`) to the filtered list, keeping the list's
- * sort order. `null` = no search.
- */
-export function applySearch(
-  entries: readonly PokedexEntry[],
-  hits: ReadonlySet<number> | null,
-): readonly PokedexEntry[] {
-  return hits === null ? entries : entries.filter((entry) => hits.has(entry.id));
-}
+export { applySearch } from '../../shared/search-filter';

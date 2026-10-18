@@ -24,7 +24,7 @@ export * from './text';
  * Version of the game-data schema. Bump whenever a table or column changes; it is written
  * to `meta.schema_version` and to `PRAGMA user_version`.
  */
-export const GAME_SCHEMA_VERSION = 2;
+export const GAME_SCHEMA_VERSION = 3;
 
 /** Every game-data table, in a stable order. */
 export const gameTables: readonly SQLiteTable[] = [
@@ -93,6 +93,8 @@ export const WITHOUT_ROWID_TABLES: ReadonlySet<string> = new Set([
   'pokemon_moves',
   'machines',
   'item_flag_map',
+  'item_generations',
+  'location_generations',
   'berry_flavor_map',
   'encounter_condition_value_map',
   'media_sources',

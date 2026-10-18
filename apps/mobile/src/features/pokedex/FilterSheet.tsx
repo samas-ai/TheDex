@@ -83,7 +83,7 @@ export function FilterSheet({
   return (
     <Sheet
       visible={visible}
-      title={t('pokedex.filters')}
+      title={t('common.filters')}
       onClose={onClose}
       footer={
         <>

@@ -9,7 +9,7 @@ import {
   POKEAPI_SHA,
   type MediaRepo,
 } from '../config';
-import { listingKey, type MediaListing } from '../media-listing';
+import { listingKey, readMediaListing, type MediaListing } from '../media-listing';
 
 const CONCURRENCY = 8;
 const force = process.argv.includes('--force');
@@ -70,9 +70,16 @@ interface TreeEntry {
  * segment (~16 requests, well under the anonymous 60/hour limit; GITHUB_TOKEN raises it).
  */
 async function fetchMediaListing(): Promise<void> {
+  const upstream = MEDIA_SOURCES.filter((source) => !source.pack);
   if (!force && (await exists(MEDIA_LISTING_FILE))) {
-    console.log(`Media listing cached -> ${MEDIA_LISTING_FILE}`);
-    return;
+    // A source added to MEDIA_SOURCES since the last fetch invalidates the cached listing.
+    const cached = readMediaListing(MEDIA_LISTING_FILE);
+    const missing = upstream.filter((s) => !cached?.dirs[listingKey(s.repo, s.dir)]);
+    if (missing.length === 0) {
+      console.log(`Media listing cached -> ${MEDIA_LISTING_FILE}`);
+      return;
+    }
+    console.log(`Media listing lacks ${missing.map((s) => s.dir).join(', ')} — fetching again`);
   }
   const headers: Record<string, string> = { Accept: 'application/vnd.github+json' };
   if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
@@ -94,7 +101,7 @@ async function fetchMediaListing(): Promise<void> {
 
   const dirs: MediaListing['dirs'] = {};
   // Packs (cry-aac) are listed by `pnpm media:pack`, not by the upstream repos.
-  for (const source of MEDIA_SOURCES.filter((s) => !s.pack)) {
+  for (const source of upstream) {
     let entries = await tree(source.repo, MEDIA_REPOS[source.repo]);
     for (const segment of source.dir.split('/')) {
       const next = entries.find((entry) => entry.path === segment && entry.type === 'tree');

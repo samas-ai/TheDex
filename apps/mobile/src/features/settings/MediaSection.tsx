@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { SPRITE_STYLES } from '@thedex/db';
+import { ITEM_ICON_STYLE, SPRITE_STYLES } from '@thedex/db';
 import { SPACING } from '@thedex/ui-tokens';
 import { useAsync } from '../../shared/hooks/useAsync';
 import { formatBytes } from '../../shared/media/media-paths';
@@ -24,11 +24,17 @@ export function MediaSection() {
     [media, running],
   );
 
-  const packStyles = media.canPlayCries ? [...SPRITE_STYLES, media.cryStyle] : [...SPRITE_STYLES];
+  const packStyles = [
+    ...SPRITE_STYLES,
+    ...(media.canPlayCries ? [media.cryStyle] : []),
+    ITEM_ICON_STYLE,
+  ];
   const labelOf = (style: string) =>
     style === media.cryStyle
       ? t('settings.cries')
-      : t(`settings.spriteStyles.${style as (typeof SPRITE_STYLES)[number]}`);
+      : style === ITEM_ICON_STYLE
+        ? t('settings.itemIcons')
+        : t(`settings.spriteStyles.${style as (typeof SPRITE_STYLES)[number]}`);
 
   const download = async (style: string) => {
     signal.current = { aborted: false };

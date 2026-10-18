@@ -11,6 +11,9 @@ export type SpriteStyle = (typeof SPRITE_STYLES)[number];
 export const CRY_STYLE = 'cry';
 /** The same cries transcoded to AAC (`.m4a`) for iOS, which cannot decode `.ogg`. */
 export const CRY_AAC_STYLE = 'cry-aac';
+/** Bag icons of the Item Dex (RF05.2): `item_icons`, one file per item. */
+export const ITEM_ICON_STYLE = 'item';
+const ITEM_ICON_VARIANT = 'default';
 
 export interface MediaSource {
   readonly style: string;
@@ -98,12 +101,55 @@ export interface MediaPackSize {
   readonly bytes: number;
 }
 
-/** File count and download size per style (Settings → media packs). */
+/** File count and download size per style, item icons included (Settings → media packs). */
 export async function getMediaPackSizes(db: AnySQLiteDatabase): Promise<MediaPackSize[]> {
   const rows = (await db.all(sql`
-    SELECT style, count(*) AS files, coalesce(sum(bytes), 0) AS bytes
-    FROM media_assets GROUP BY style ORDER BY style`)) as MediaPackSize[];
+    SELECT style, files, bytes FROM (
+      SELECT style, count(*) AS files, coalesce(sum(bytes), 0) AS bytes
+      FROM media_assets GROUP BY style
+      UNION ALL
+      SELECT ${ITEM_ICON_STYLE}, count(*), coalesce(sum(bytes), 0) FROM item_icons
+    ) WHERE files > 0 ORDER BY style`)) as MediaPackSize[];
   return rows.map((row) => ({ style: row.style, files: row.files, bytes: row.bytes }));
+}
+
+// --- Item icons (RF05.2) ----------------------------------------------------------------
+
+/** A downloadable item icon. */
+export interface ItemIcon {
+  readonly itemId: number;
+  /** File name relative to the `item` source's base URL (e.g. `master-ball.png`). */
+  readonly path: string;
+  readonly bytes: number | null;
+}
+
+/** Cache key of an item icon in `media_cache` (`item/default/<item id>`). */
+export function itemIconCacheKey(itemId: number): string {
+  return `${ITEM_ICON_STYLE}/${ITEM_ICON_VARIANT}/${itemId}`;
+}
+
+/** Media source of item icons (null with a data DB that has none). */
+export function itemIconSource(sources: readonly MediaSource[]): MediaSource | null {
+  return (
+    sources.find(
+      (source) => source.style === ITEM_ICON_STYLE && source.variant === ITEM_ICON_VARIANT,
+    ) ?? null
+  );
+}
+
+export async function getItemIcon(db: AnySQLiteDatabase, itemId: number): Promise<ItemIcon | null> {
+  const row = (await db.get(
+    sql`SELECT item_id, path, bytes FROM item_icons WHERE item_id = ${itemId}`,
+  )) as { item_id: number; path: string; bytes: number | null } | undefined;
+  return row ? { itemId: row.item_id, path: row.path, bytes: row.bytes } : null;
+}
+
+/** Every item icon ("download all media packs", RNF02). */
+export async function listItemIcons(db: AnySQLiteDatabase): Promise<ItemIcon[]> {
+  const rows = (await db.all(
+    sql`SELECT item_id, path, bytes FROM item_icons ORDER BY item_id`,
+  )) as { item_id: number; path: string; bytes: number | null }[];
+  return rows.map((row) => ({ itemId: row.item_id, path: row.path, bytes: row.bytes }));
 }
 
 // --- User DB: what is on this device (media_cache) --------------------------------------

@@ -37,3 +37,13 @@ export function genderRatio(genderRate: number): { female: number; male: number 
 export function formatPercent(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
+
+/** Sell price of an item: half its buy price (null when it cannot be bought, RF05.2). */
+export function sellPrice(cost: number | null): number | null {
+  return cost !== null && cost > 0 ? Math.floor(cost / 2) : null;
+}
+
+/** Pokédollar amount with the UI locale's digit grouping (`₽40,000`, `₽40.000`). */
+export function formatPrice(value: number, locale: string): string {
+  return `₽${new Intl.NumberFormat(locale).format(value)}`;
+}

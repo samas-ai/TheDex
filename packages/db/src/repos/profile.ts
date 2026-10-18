@@ -1,5 +1,4 @@
 import { sql } from 'drizzle-orm';
-import { stripProseMarkup } from '../prose';
 import { langRank, pickI18n, sqlList } from '../sql';
 import type { AnySQLiteDatabase, GameContext } from '../types';
 import type { NamedEntity } from './catalog';
@@ -201,57 +200,4 @@ export async function getFlavorTexts(
     lang: row.lang,
     inGame: row.in_game === 1,
   }));
-}
-
-export interface AbilityDetail extends NamedEntity {
-  readonly generationId: number;
-  readonly shortEffect: string | null;
-  readonly effect: string | null;
-  /** In-game description from the context game, else the latest earlier one. */
-  readonly flavorText: string | null;
-}
-
-/** Ability sheet content (RF02.2): battle effect prose + in-game description. */
-export async function getAbilityDetail(
-  db: AnySQLiteDatabase,
-  abilityId: number,
-  ctx: GameContext,
-): Promise<AbilityDetail | null> {
-  const { langChain } = ctx;
-  const row = (await db.get(sql`
-    SELECT a.id, a.identifier, a.generation_id,
-      ${pickI18n('ability_i18n', 'ability_id', sql`a.id`, 'name', langChain)} AS name,
-      ${pickI18n('ability_prose_i18n', 'ability_id', sql`a.id`, 'short_effect', langChain)} AS short_effect,
-      ${pickI18n('ability_prose_i18n', 'ability_id', sql`a.id`, 'effect', langChain)} AS effect
-    FROM abilities a WHERE a.id = ${abilityId}`)) as
-    | {
-        id: number;
-        identifier: string;
-        generation_id: number;
-        name: string | null;
-        short_effect: string | null;
-        effect: string | null;
-      }
-    | undefined;
-  if (!row) return null;
-
-  const flavor = (await db.get(sql`
-    SELECT ft.text FROM ability_flavor_text aft
-    JOIN flavor_texts ft ON ft.id = aft.flavor_text_id
-    JOIN version_groups vg ON vg.id = aft.version_group_id
-    WHERE aft.ability_id = ${abilityId} AND aft.lang IN (${sqlList(langChain)})
-      AND vg.sort_order <= (SELECT max(sort_order) FROM version_groups
-                            WHERE id IN (${sqlList(ctx.versionGroupIds)}))
-    ORDER BY ${langRank(sql`aft.lang`, langChain)}, vg.sort_order DESC LIMIT 1`)) as
-    { text: string } | undefined;
-
-  return {
-    id: row.id,
-    identifier: row.identifier,
-    name: row.name ?? row.identifier,
-    generationId: row.generation_id,
-    shortEffect: row.short_effect === null ? null : stripProseMarkup(row.short_effect),
-    effect: row.effect === null ? null : stripProseMarkup(row.effect),
-    flavorText: flavor?.text ?? null,
-  };
 }

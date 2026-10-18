@@ -1,5 +1,5 @@
 {
-  "$comment": "pt-BR names for game data (PokeAPI declares pt-BR but ships no text). Format: { <i18n table>: { <PokeAPI identifier>: { name } } }. Types follow the official Brazilian Pokédex (pokemon.com/br); natures use the established community names (feminine, agreeing with 'natureza'). Everything else falls back to English through the langChain.",
+  "$comment": "pt-BR names for game data (PokeAPI declares pt-BR but ships no text). Format: { <i18n table>: { <PokeAPI identifier>: { name } } }. Move categories use the Brazilian games' terms. Types follow the official Brazilian Pokédex (pokemon.com/br); natures use the established community names (feminine, agreeing with 'natureza'). Everything else falls back to English through the langChain.",
   "type_i18n": {
     "normal": { "name": "Normal" },
     "fighting": { "name": "Lutador" },
@@ -65,5 +65,10 @@
     "sweet": { "name": "Doce" },
     "bitter": { "name": "Amargo" },
     "sour": { "name": "Azedo" }
+  },
+  "move_damage_class_i18n": {
+    "physical": { "name": "Físico" },
+    "special": { "name": "Especial" },
+    "status": { "name": "Status" }
   }
 }

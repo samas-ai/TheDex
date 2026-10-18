@@ -1,13 +1,25 @@
 /**
- * RNF07 benchmark: ~1000 search queries (1–12 chars, several languages incl. CJK) and the
- * Pokédex list (RF01) with every sort and filter, against the real thedex-data.db. Fails when
- * a p95 is ≥ 100 ms or the "char" ordering regresses.
+ * RNF07 benchmark: ~1000 search queries (1–12 chars, several languages incl. CJK), the
+ * Pokédex list (RF01) with every sort and filter, and the Phase 3 encyclopedia lists and
+ * details, against the real thedex-data.db. Fails when a p95 is ≥ 100 ms or the "char"
+ * ordering regresses.
  */
 import path from 'node:path';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import {
+  getAbilityHolders,
+  getItemDetail,
+  getLocationEncounters,
+  getMoveDetail,
+  getMoveLearners,
+  listAbilityDex,
+  listItems,
+  listLocationRegions,
+  listLocations,
+  listMoves,
   listPokedex,
+  MOVE_SORT_KEYS,
   POKEDEX_SORT_KEYS,
   resolveGameContext,
   searchQuery,
@@ -156,22 +168,61 @@ for (const game of ['red-blue', 'emerald', 'sword-shield', 'scarlet-violet']) {
     }
   }
 }
-app.close();
 const listP95 = percentile(listTimings, 95);
 console.log(
   `Pokédex list — ${listTimings.length} queries (${listRows} rows): p50 ${fmt(percentile(listTimings, 50))} · ` +
     `p95 ${fmt(listP95)} · max ${fmt(Math.max(...listTimings))}`,
 );
 
+// --- Encyclopedias (Phase 3): Move, Ability, Item and Location Dex lists and details -------
+const dexTimings: number[] = [];
+const timed = async (fn: () => Promise<unknown>) => {
+  const started = performance.now();
+  await fn();
+  dexTimings.push(performance.now() - started);
+};
+for (const game of ['red-blue', 'heartgold-soulsilver', 'sword-shield', 'scarlet-violet']) {
+  const ctx = await resolveGameContext(appDb, game, ['pt-BR', 'en']);
+  await listMoves(appDb, ctx); // warm-up
+  for (const key of MOVE_SORT_KEYS) {
+    await timed(() => listMoves(appDb, ctx, { sort: { key, direction: 'desc' } }));
+    await timed(() =>
+      listMoves(appDb, ctx, {
+        filters: { typeIds: [13], damageClasses: ['special'], learnableOnly: true },
+        sort: { key, direction: 'asc' },
+      }),
+    );
+  }
+  await timed(() => listAbilityDex(appDb, ctx, { inGameOnly: true }));
+  await timed(() => listItems(appDb, ctx));
+  await timed(() => listItems(appDb, ctx, { groups: ['machine'], inGameOnly: true }));
+  for (const region of await listLocationRegions(appDb, ctx)) {
+    await timed(() => listLocations(appDb, ctx, { regionId: region.id }));
+  }
+  for (const moveId of [85, 182, 33]) {
+    await timed(() => getMoveDetail(appDb, moveId, ctx));
+    await timed(() => getMoveLearners(appDb, moveId, ctx));
+  }
+  await timed(() => getAbilityHolders(appDb, 26, ctx));
+  await timed(() => getItemDetail(appDb, 211, ctx));
+  await timed(() => getLocationEncounters(appDb, 80, ctx));
+}
+app.close();
+const dexP95 = percentile(dexTimings, 95);
+console.log(
+  `Encyclopedias — ${dexTimings.length} queries: p50 ${fmt(percentile(dexTimings, 50))} · ` +
+    `p95 ${fmt(dexP95)} · max ${fmt(Math.max(...dexTimings))}`,
+);
+
 const p95 = percentile(timings, 95);
 db.close();
-if (p95 >= BUDGET_MS || listP95 >= BUDGET_MS || !orderOk) {
+if (p95 >= BUDGET_MS || listP95 >= BUDGET_MS || dexP95 >= BUDGET_MS || !orderOk) {
   console.error(
-    `✗ ${!orderOk ? '"char" ordering regressed' : `p95 search ${fmt(p95)} / list ${fmt(listP95)} ≥ ${BUDGET_MS} ms`}`,
+    `✗ ${!orderOk ? '"char" ordering regressed' : `p95 search ${fmt(p95)} / list ${fmt(listP95)} / encyclopedias ${fmt(dexP95)} ≥ ${BUDGET_MS} ms`}`,
   );
   process.exitCode = 1;
 } else {
   console.log(
-    `✓ search p95 ${fmt(p95)} and list p95 ${fmt(listP95)} < ${BUDGET_MS} ms; "char" ordering correct`,
+    `✓ p95 search ${fmt(p95)}, list ${fmt(listP95)}, encyclopedias ${fmt(dexP95)} < ${BUDGET_MS} ms; "char" ordering correct`,
   );
 }

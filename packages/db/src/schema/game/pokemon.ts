@@ -381,5 +381,9 @@ export const pokemonEvolution = sqliteTable(
     conditionExpression: text('condition_expression'),
     percentageChance: integer('percentage_chance'),
   },
-  (t) => [index('pokemon_evolution_species_idx').on(t.evolvedSpeciesId)],
+  (t) => [
+    index('pokemon_evolution_species_idx').on(t.evolvedSpeciesId),
+    index('pokemon_evolution_trigger_item_idx').on(t.triggerItemId),
+    index('pokemon_evolution_held_item_idx').on(t.heldItemId),
+  ],
 );

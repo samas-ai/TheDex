@@ -1,4 +1,5 @@
-import { StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { getPokemonEncounters, type EncounterEntry, type PokemonProfile } from '@thedex/db';
 import { SPACING, type TypeAccent } from '@thedex/ui-tokens';
@@ -6,30 +7,22 @@ import { useAppDatabase } from '../../../shared/db/DatabaseProvider';
 import { useGame } from '../../../shared/game/GameProvider';
 import { useAsync } from '../../../shared/hooks/useAsync';
 import { useTheme } from '../../../shared/theme/ThemeProvider';
+import { Icon } from '../../../shared/ui/Icon';
 import { Card, Loading, Section, ThemedText } from '../../../shared/ui/primitives';
-
-/** Games whose encounters PokeAPI does not have yet (see CLAUDE.md, data gaps). */
-const ENCOUNTER_DATA_GAPS = new Set([
-  'scarlet-violet',
-  'legends-arceus',
-  'brilliant-diamond-shining-pearl',
-  'legends-za',
-  'champions',
-]);
 
 /** RF02.7: wild encounters per location in the selected game's versions. */
 export function LocationsTab({ profile, accent }: { profile: PokemonProfile; accent: TypeAccent }) {
   const { t } = useTranslation();
   const { db } = useAppDatabase();
-  const { ctx } = useGame();
+  const { ctx, features } = useGame();
+  const theme = useTheme();
   const { data } = useAsync(() => getPokemonEncounters(db, profile.id, ctx), [db, ctx, profile.id]);
   if (!data) return <Loading />;
   if (data.length === 0) {
+    // "None" only when PokeAPI has the game's encounters (SV, BDSP, Legends… do not yet).
     return (
       <ThemedText muted>
-        {ENCOUNTER_DATA_GAPS.has(ctx.gameIdentifier)
-          ? t('profile.locations.dataGap')
-          : t('profile.locations.none')}
+        {features.hasEncounters ? t('profile.locations.none') : t('profile.locations.dataGap')}
       </ThemedText>
     );
   }
@@ -40,7 +33,20 @@ export function LocationsTab({ profile, accent }: { profile: PokemonProfile; acc
   return (
     <View>
       {[...byLocation.values()].map((entries) => (
-        <Section key={entries[0]!.location.id} title={entries[0]!.location.name}>
+        <Section
+          key={entries[0]!.location.id}
+          title={entries[0]!.location.name}
+          right={
+            <Pressable
+              onPress={() => router.push(`/location/${entries[0]!.location.id}`)}
+              accessibilityRole="button"
+              accessibilityLabel={entries[0]!.location.name}
+              hitSlop={8}
+            >
+              <Icon name="map-marker-radius" size={20} color={theme.colors.textMuted} />
+            </Pressable>
+          }
+        >
           <Card>
             {entries.map((entry, index) => (
               <EncounterRow key={index} entry={entry} accent={accent} />
