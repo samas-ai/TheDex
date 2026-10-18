@@ -5,6 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { MEDIA_REPOS, MEDIA_SOURCES } from '../../src/config';
 
 type Row = Record<string, string | number | null>;
 
@@ -128,6 +129,7 @@ export const FIXTURE_CSVS: Record<string, Row[]> = {
     { species_id: 25, pokedex_id: 31, pokedex_number: 74 },
     { species_id: 935, pokedex_id: 31, pokedex_number: 26 },
     { species_id: 4, pokedex_id: 32, pokedex_number: 150 },
+    { species_id: 6, pokedex_id: 32, pokedex_number: 151 },
   ],
   types: [
     { id: 1, identifier: 'normal', generation_id: 1, damage_class_id: 2 },
@@ -224,8 +226,8 @@ export const FIXTURE_CSVS: Record<string, Row[]> = {
       id,
       identifier,
       species_id: id,
-      height: 7,
-      weight: 69,
+      height: (id % 10) + 3,
+      weight: id * 3,
       base_experience: 64,
       order: id,
       is_default: 1,
@@ -513,6 +515,15 @@ export const FIXTURE_CSVS: Record<string, Row[]> = {
       mastery: null,
     },
     {
+      pokemon_id: 6,
+      version_group_id: 25,
+      move_id: 53,
+      pokemon_move_method_id: 1,
+      level: 1,
+      order: 1,
+      mastery: null,
+    },
+    {
       pokemon_id: 4,
       version_group_id: 26,
       move_id: 53,
@@ -524,10 +535,12 @@ export const FIXTURE_CSVS: Record<string, Row[]> = {
   ],
   item_pockets: [
     { id: 2, identifier: 'medicine' },
+    { id: 4, identifier: 'machines' },
     { id: 7, identifier: 'battle' },
   ],
   item_categories: [
     { id: 27, pocket_id: 2, identifier: 'healing' },
+    { id: 37, pocket_id: 4, identifier: 'all-machines' },
     { id: 44, pocket_id: 7, identifier: 'mega-stones' },
   ],
   items: [
@@ -547,8 +560,146 @@ export const FIXTURE_CSVS: Record<string, Row[]> = {
       fling_power: 80,
       fling_effect_id: null,
     },
+    {
+      id: 328,
+      identifier: 'tm24',
+      category_id: 37,
+      cost: 3000,
+      fling_power: null,
+      fling_effect_id: null,
+    },
   ],
   item_names: [{ item_id: 17, local_language_id: EN, name: 'Potion' }],
+  machines: [{ machine_number: 24, version_group_id: 1, item_id: 328, move_id: 85 }],
+
+  // Breeding, growth, evolution (RF02.2 / RF02.5)
+  egg_groups: [
+    { id: 1, identifier: 'monster' },
+    { id: 14, identifier: 'dragon' },
+  ],
+  egg_group_prose: [
+    { egg_group_id: 1, local_language_id: EN, name: 'Monster' },
+    { egg_group_id: 14, local_language_id: EN, name: 'Dragon' },
+  ],
+  pokemon_egg_groups: [
+    { species_id: 4, egg_group_id: 1 },
+    { species_id: 4, egg_group_id: 14 },
+  ],
+  growth_rate_prose: [{ growth_rate_id: 2, local_language_id: EN, name: 'medium' }],
+  evolution_triggers: [
+    { id: 1, identifier: 'level-up' },
+    { id: 3, identifier: 'use-item' },
+  ],
+  evolution_trigger_prose: [{ evolution_trigger_id: 1, local_language_id: EN, name: 'Level up' }],
+  pokemon_evolution: [
+    {
+      id: 1,
+      evolved_species_id: 5,
+      evolution_trigger_id: 1,
+      version_group_id: 1,
+      is_default: 1,
+      minimum_level: 16,
+      trigger_item_id: null,
+    },
+    {
+      id: 2,
+      evolved_species_id: 6,
+      evolution_trigger_id: 1,
+      version_group_id: 1,
+      is_default: 1,
+      minimum_level: 36,
+    },
+    // Superseded in a later game (fictional): Charmeleon by Potion from Scarlet/Violet.
+    {
+      id: 3,
+      evolved_species_id: 5,
+      evolution_trigger_id: 3,
+      version_group_id: 25,
+      is_default: 0,
+      trigger_item_id: 17,
+    },
+  ],
+
+  // Abilities prose (RF02.2 sheet)
+  ability_prose: [
+    {
+      ability_id: 65,
+      local_language_id: EN,
+      short_effect: 'Strengthens [grass]{type:grass} moves to 1.5× in a pinch.',
+      effect:
+        'When this Pokémon has 1/3 or less of its [HP]{mechanic:hp} remaining, its grass-type moves inflict 1.5× as much [regular damage]{mechanic:regular-damage}.',
+    },
+  ],
+  ability_flavor_text: [
+    {
+      ability_id: 65,
+      version_group_id: 8,
+      language_id: EN,
+      flavor_text: 'Ups GRASS moves in a pinch.',
+    },
+    {
+      ability_id: 65,
+      version_group_id: 25,
+      language_id: EN,
+      flavor_text: 'Powers up Grass-type moves when the Pokémon’s HP is low.',
+    },
+  ],
+
+  // Wild encounters (RF02.7): Pikachu in Viridian Forest in Red and Blue.
+  locations: [{ id: 155, region_id: 1, identifier: 'viridian-forest' }],
+  location_names: [
+    { location_id: 155, local_language_id: EN, name: 'Viridian Forest', subtitle: null },
+  ],
+  location_areas: [{ id: 321, location_id: 155, game_index: 1, identifier: null }],
+  location_area_prose: [{ location_area_id: 321, local_language_id: EN, name: '' }],
+  encounter_methods: [{ id: 1, identifier: 'walk', order: 1 }],
+  encounter_method_prose: [
+    { encounter_method_id: 1, local_language_id: EN, name: 'Walking in tall grass or a cave' },
+  ],
+  encounter_slots: [
+    { id: 1, version_group_id: 1, encounter_method_id: 1, slot: 1, rarity: 5 },
+    { id: 2, version_group_id: 1, encounter_method_id: 1, slot: 2, rarity: 10 },
+  ],
+  encounters: [
+    {
+      id: 1,
+      version_id: 1,
+      location_area_id: 321,
+      encounter_slot_id: 1,
+      pokemon_id: 25,
+      min_level: 3,
+      max_level: 5,
+    },
+    {
+      id: 2,
+      version_id: 2,
+      location_area_id: 321,
+      encounter_slot_id: 1,
+      pokemon_id: 25,
+      min_level: 3,
+      max_level: 5,
+    },
+    {
+      id: 3,
+      version_id: 1,
+      location_area_id: 321,
+      encounter_slot_id: 2,
+      pokemon_id: 25,
+      min_level: 4,
+      max_level: 6,
+    },
+  ],
+  encounter_conditions: [{ id: 2, identifier: 'time' }],
+  encounter_condition_prose: [
+    { encounter_condition_id: 2, local_language_id: EN, name: 'Time of day' },
+  ],
+  encounter_condition_values: [
+    { id: 5, encounter_condition_id: 2, identifier: 'time-night', is_default: 0 },
+  ],
+  encounter_condition_value_prose: [
+    { encounter_condition_value_id: 5, local_language_id: EN, name: 'At night' },
+  ],
+  encounter_condition_value_map: [{ encounter_id: 3, encounter_condition_value_id: 5 }],
   pokemon_species_flavor_text: [
     {
       species_id: 25,
@@ -580,6 +731,23 @@ export function writeFixtureCsvs(dir: string): void {
     ];
     writeFileSync(path.join(dir, `${name}.csv`), `${lines.join('\n')}\n`);
   }
+}
+
+/** Media listing for the pinned commits: every source dir lists Pikachu, Charizard and a non-Pokémon file. */
+export function writeFixtureMediaListing(file: string): void {
+  const dirs: Record<string, [string, number][]> = {};
+  for (const source of MEDIA_SOURCES) {
+    const entries: [string, number][] = [
+      [`25.${source.format}`, 1000],
+      [`6.${source.format}`, 2000],
+      [`egg.${source.format}`, 10],
+    ];
+    // The Mega has no 3D (Showdown) sprite at the pinned commit.
+    if (source.style !== '3d') entries.push([`10034.${source.format}`, 3000]);
+    dirs[`${source.repo}/${source.dir}`] = entries;
+  }
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, JSON.stringify({ repos: { ...MEDIA_REPOS }, dirs }));
 }
 
 /** Curated files matching the fixture subset. */

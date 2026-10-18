@@ -6,6 +6,7 @@ import {
   DATA_DB_FILE,
   DIST_DIR,
   GENERATED_MANIFEST_TS,
+  MEDIA_LISTING_FILE,
   MOBILE_DB_DIR,
   POKEAPI_CSV_DIR,
   SIZE_FAIL_BYTES,
@@ -37,6 +38,8 @@ export const DATA_MANIFEST = {
   schemaVersion: ${report.schemaVersion},
   pokeapiSha: '${report.pokeapiSha}',
   pkmnVersion: '${report.pkmnVersion}',
+  spritesSha: '${report.spritesSha}',
+  criesSha: '${report.criesSha}',
 } as const;
 
 export const DATA_VERSION: string = DATA_MANIFEST.dataVersion;
@@ -48,6 +51,7 @@ const started = performance.now();
 const options = {
   csvDir: POKEAPI_CSV_DIR,
   curatedDir: CURATED_DIR,
+  mediaListingFile: MEDIA_LISTING_FILE,
   outFile: path.join(DIST_DIR, DATA_DB_FILE),
   dedupeLearnsets: process.argv.includes('--dedupe-learnsets'),
 };

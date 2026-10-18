@@ -9,6 +9,8 @@ export interface BuildOptions {
   readonly csvDir: string;
   /** Directory with data/curated JSON files. */
   readonly curatedDir: string;
+  /** Media directory listing (see media-listing.ts); required unless `allowMissingCsv`. */
+  readonly mediaListingFile?: string;
   /** Output .db path. */
   readonly outFile: string;
   /** Tolerate missing CSV files (test fixtures ship a subset). */

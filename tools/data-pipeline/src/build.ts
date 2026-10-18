@@ -5,13 +5,15 @@ import path from 'node:path';
 import Database from 'better-sqlite3';
 import { gameSchemaDdl } from '@thedex/db/ddl';
 import { GAME_SCHEMA_VERSION } from '@thedex/db/game';
-import { POKEAPI_SHA, REPO_ROOT } from './config';
+import { CRIES_SHA, POKEAPI_SHA, REPO_ROOT, SPRITES_SHA } from './config';
 import { BuildContext, type BuildOptions } from './context';
 import { CURATED_FILES, loadCurated } from './curated';
 import { derivePtBr, deriveSpeciesTags } from './derive/curated';
+import { deriveFormKinds } from './derive/forms';
 import { deriveGames } from './derive/games';
 import { deriveHistory } from './derive/history';
 import { dedupeLearnsetsByGame } from './derive/learnsets';
+import { deriveMedia } from './derive/media';
 import { deriveMoveStats } from './derive/moves';
 import { derivePkmn } from './derive/pkmn';
 import { deriveSearch } from './derive/search';
@@ -78,15 +80,19 @@ export function buildDatabase(options: BuildOptions): BuildReport {
     deriveMoveStats(ctx);
     deriveGames(ctx);
     derivePkmn(ctx);
+    deriveFormKinds(ctx);
     deriveSpeciesTags(ctx);
     derivePtBr(ctx);
     if (options.dedupeLearnsets) dedupeLearnsetsByGame(ctx);
     deriveSearch(ctx);
+    deriveMedia(ctx);
     ctx.log('Finalizing…');
     return finalize(ctx, {
       dataVersion: computeDataVersion(options),
       pokeapiSha: POKEAPI_SHA,
       pkmnVersion: PKMN_VERSION,
+      spritesSha: SPRITES_SHA,
+      criesSha: CRIES_SHA,
     });
   } finally {
     db.close();

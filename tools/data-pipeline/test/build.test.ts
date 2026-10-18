@@ -15,7 +15,11 @@ import {
 import { buildDatabase } from '../src/build';
 import type { BuildReport } from '../src/finalize';
 import { checkHotQueryPlans } from '../src/query-plans';
-import { writeFixtureCsvs, writeFixtureCurated } from './fixtures/pokeapi';
+import {
+  writeFixtureCsvs,
+  writeFixtureCurated,
+  writeFixtureMediaListing,
+} from './fixtures/pokeapi';
 
 let tmp: string;
 let report: BuildReport;
@@ -27,6 +31,7 @@ function build(outFile: string, dedupeLearnsets: boolean) {
   return buildDatabase({
     csvDir: path.join(tmp, 'csv'),
     curatedDir: path.join(tmp, 'curated'),
+    mediaListingFile: path.join(tmp, 'media.json'),
     outFile,
     allowMissingCsv: true,
     analyze: false,
@@ -39,6 +44,7 @@ beforeAll(() => {
   tmp = mkdtempSync(path.join(os.tmpdir(), 'thedex-pipeline-'));
   writeFixtureCsvs(path.join(tmp, 'csv'));
   writeFixtureCurated(path.join(tmp, 'curated'));
+  writeFixtureMediaListing(path.join(tmp, 'media.json'));
   report = build(path.join(tmp, 'data.db'), false);
   dedupedReport = build(path.join(tmp, 'data-deduped.db'), true);
   sqlite = new Database(report.file, { readonly: true });
@@ -82,9 +88,9 @@ describe('database integrity', () => {
   });
 
   it('records metadata and a deterministic data version', () => {
-    expect(report.dataVersion).toMatch(/^1-[0-9a-f]{12}$/);
+    expect(report.dataVersion).toMatch(/^2-[0-9a-f]{12}$/);
     expect(value(`SELECT value FROM meta WHERE key = 'data_version'`)).toBe(report.dataVersion);
-    expect(value('PRAGMA user_version')).toBe(1);
+    expect(value('PRAGMA user_version')).toBe(2);
     expect(dedupedReport.dataVersion).not.toBe(report.dataVersion);
   });
 
@@ -92,7 +98,7 @@ describe('database integrity', () => {
     expect(value(`SELECT sql FROM sqlite_master WHERE name = 'pokemon_moves'`)).toMatch(
       /WITHOUT ROWID$/,
     );
-    expect(value('SELECT count(*) FROM pokemon_moves')).toBe(8);
+    expect(value('SELECT count(*) FROM pokemon_moves')).toBe(9);
   });
 
   it('reports table sizes and learnset dedupe potential', () => {
@@ -186,10 +192,13 @@ describe('games and curated data', () => {
 
   it('stores each flavor text once and cleans line breaks', () => {
     expect(value('SELECT count(*) FROM species_flavor_text')).toBe(2);
-    expect(value('SELECT count(*) FROM flavor_texts')).toBe(1);
-    expect(value('SELECT text FROM flavor_texts')).toBe(
-      'When several of these POKéMON gather, their electricity could build.',
-    );
+    expect(value('SELECT count(DISTINCT flavor_text_id) FROM species_flavor_text')).toBe(1);
+    expect(value('SELECT count(*) FROM flavor_texts')).toBe(3);
+    expect(
+      value(
+        'SELECT text FROM flavor_texts WHERE id = (SELECT flavor_text_id FROM species_flavor_text LIMIT 1)',
+      ),
+    ).toBe('When several of these POKéMON gather, their electricity could build.');
   });
 });
 
@@ -204,6 +213,8 @@ describe('repositories over the built database', () => {
       ['Charcadet', 26],
       ['Pikachu', 74],
       ['Charmander', 150],
+      ['Charizard', 151],
+      ['Mega Charizard X', 151],
     ]);
   });
 
@@ -239,7 +250,7 @@ describe('repositories over the built database', () => {
         ],
       });
     }
-    expect(deduped.prepare('SELECT count(*) FROM pokemon_moves').pluck().get()).toBe(7);
+    expect(deduped.prepare('SELECT count(*) FROM pokemon_moves').pluck().get()).toBe(8);
   });
 });
 
@@ -277,7 +288,7 @@ describe('search', () => {
       game: 'scarlet-violet',
       pokemonId: 25,
     });
-    expect(checked).toBeGreaterThanOrEqual(10);
+    expect(checked).toBeGreaterThanOrEqual(40);
     expect(violations).toEqual([]);
   });
 });

@@ -10,10 +10,18 @@ import {
   isNatureName,
   type Generation,
 } from '@thedex/engine';
-import { searchQuery } from '@thedex/db';
+import {
+  getEvolutionChain,
+  getPokemonMoves,
+  listPokedex,
+  resolveGameContext,
+  searchQuery,
+  type EvolutionMethod,
+} from '@thedex/db';
+import { CRIES_SHA, SPRITES_SHA } from './config';
 import { readCsv } from './csv';
 import { PT_BR_REQUIRED } from './derive/curated';
-import { checkHotQueryPlans } from './query-plans';
+import { checkHotQueryPlans, openAppLikeConnection } from './query-plans';
 
 export interface ValidationReport {
   readonly errors: string[];
@@ -293,11 +301,123 @@ export async function validateDatabase(options: ValidateOptions): Promise<Valida
       names.join(', '),
     );
 
+    // --- Phase 2: media manifest, form kinds, profile repositories ------------------------
+    const mediaMinimums: [string, string, number][] = [
+      ['media sources', 'SELECT count(*) FROM media_sources', 10],
+      [
+        'official artwork files',
+        `SELECT count(*) FROM media_assets WHERE style = 'official' AND variant = 'default'`,
+        1300,
+      ],
+      [
+        'cry files',
+        `SELECT count(*) FROM media_assets WHERE style = 'cry' AND variant = 'latest'`,
+        1300,
+      ],
+    ];
+    for (const [name, sql, minimum] of mediaMinimums) {
+      const count = scalar(db, sql);
+      check(`count ${name} ≥ ${minimum}`, count >= minimum, `got ${count}`);
+    }
+    const formKind = (identifier: string) =>
+      scalar<string>(db, 'SELECT form_kind FROM pokemon_forms WHERE identifier = ?', identifier);
+    const phase2Facts: [string, unknown, unknown][] = [
+      [
+        'Every media source is pinned to the configured commits',
+        scalar(
+          db,
+          `SELECT count(*) FROM media_sources WHERE instr(base_url, ?) = 0 AND instr(base_url, ?) = 0`,
+          `/${SPRITES_SHA}/`,
+          `/${CRIES_SHA}/`,
+        ),
+        0,
+      ],
+      [
+        'Pikachu has a shiny official artwork',
+        scalar<string>(
+          db,
+          `SELECT path FROM media_assets WHERE pokemon_id = 25 AND style = 'official' AND variant = 'shiny'`,
+        ),
+        '25.png',
+      ],
+      ['Mega Charizard X form kind', formKind('charizard-mega-x'), 'mega'],
+      ['Alolan Raichu form kind', formKind('raichu-alola'), 'regional_alola'],
+      ['Gigantamax Pikachu form kind', formKind('pikachu-gmax'), 'gmax'],
+      ['Unown B form kind', formKind('unown-b'), 'cosmetic'],
+      [
+        'No form without a kind',
+        scalar(db, 'SELECT count(*) FROM pokemon_forms WHERE form_kind IS NULL'),
+        0,
+      ],
+    ];
+    for (const [name, actual, expected] of phase2Facts) {
+      check(name, actual === expected, `expected ${String(expected)}, got ${String(actual)}`);
+    }
+
+    const app = openAppLikeConnection(options.dbFile);
+    try {
+      const orm = drizzle(app);
+      const sv = await resolveGameContext(orm, 'scarlet-violet', ['en']);
+      const xy = await resolveGameContext(orm, 'x-y', ['en']);
+      const sm = await resolveGameContext(orm, 'sun-moon', ['en']);
+      const methodsOf = async (species: number, evolved: number, ctx: typeof sv) =>
+        (await getEvolutionChain(orm, species, ctx))?.nodes.find((n) => n.speciesId === evolved)
+          ?.methods ?? [];
+      const describe = (methods: readonly EvolutionMethod[]) =>
+        methods
+          .map(
+            (m) =>
+              `${m.trigger}:${m.minHappiness ?? ''}:${m.minAffection ?? ''}:${m.evolvedPokemon?.name ?? ''}`,
+          )
+          .join(',');
+      const sylveonSv = await methodsOf(133, 700, sv);
+      const sylveonXy = await methodsOf(133, 700, xy);
+      const raichuSm = await methodsOf(25, 26, sm);
+      const raichuSv = await methodsOf(25, 26, sv);
+      const svList = await listPokedex(orm, sv);
+      const megaMoves = await getPokemonMoves(orm, 10034, xy);
+      const repoFacts: [string, boolean, string][] = [
+        [
+          'Sylveon evolves by friendship in Scarlet/Violet',
+          sylveonSv.length === 1 && sylveonSv[0]?.minHappiness === 160,
+          describe(sylveonSv),
+        ],
+        [
+          'Sylveon evolves by affection in X/Y',
+          sylveonXy.length === 1 && sylveonXy[0]?.minAffection === 2,
+          describe(sylveonXy),
+        ],
+        [
+          'Raichu has a regular and an Alolan evolution in Sun/Moon',
+          raichuSm.length === 2 && raichuSm.some((m) => m.region?.identifier === 'alola'),
+          describe(raichuSm),
+        ],
+        [
+          'Raichu has no Alolan evolution in Scarlet/Violet',
+          raichuSv.length === 1 && raichuSv[0]?.evolvedPokemon === null,
+          describe(raichuSv),
+        ],
+        [
+          'Scarlet/Violet list starts at Paldea #1 Sprigatito',
+          svList[0]?.identifier === 'sprigatito' && svList[0].regionalNumber === 1,
+          `${svList[0]?.identifier} #${svList[0]?.regionalNumber}`,
+        ],
+        [
+          'Mega Charizard X has a moveset in X/Y',
+          megaMoves.moves.length > 0,
+          `${megaMoves.moves.length} moves`,
+        ],
+      ];
+      for (const [name, ok, detail] of repoFacts) check(name, ok, detail);
+    } finally {
+      app.close();
+    }
+
     // --- Query plans ---------------------------------------------------------------------
     const plans = await checkHotQueryPlans(db, { game: 'scarlet-violet', pokemonId: 25 });
     check(
       `${plans.checked} hot queries avoid full scans of large tables`,
-      plans.checked >= 10 && plans.violations.length === 0,
+      plans.checked >= 40 && plans.violations.length === 0,
       plans.violations.map((v) => `[${v.label}] ${v.detail}`).join('; ') ||
         `${plans.checked} captured`,
     );

@@ -19,6 +19,8 @@ export interface BuildReport {
   readonly schemaVersion: number;
   readonly pokeapiSha: string;
   readonly pkmnVersion: string;
+  readonly spritesSha: string;
+  readonly criesSha: string;
   readonly builtAt: string;
   readonly dedupeLearnsets: boolean;
   /** Rows the per-game learnset dedupe would (still) remove — its potential savings. */
@@ -32,6 +34,8 @@ export interface FinalizeInfo {
   readonly dataVersion: string;
   readonly pokeapiSha: string;
   readonly pkmnVersion: string;
+  readonly spritesSha: string;
+  readonly criesSha: string;
 }
 
 function sizeReport(ctx: BuildContext, fileBytes: number): TableSize[] | null {
@@ -85,6 +89,8 @@ export function finalize(ctx: BuildContext, info: FinalizeInfo): BuildReport {
       ['data_version', info.dataVersion],
       ['source_pokeapi_sha', info.pokeapiSha],
       ['source_pkmn_version', info.pkmnVersion],
+      ['source_sprites_sha', info.spritesSha],
+      ['source_cries_sha', info.criesSha],
       ['dedupe_learnsets', ctx.options.dedupeLearnsets ? '1' : '0'],
       ['built_at', builtAt],
     ],
@@ -115,6 +121,8 @@ export function finalize(ctx: BuildContext, info: FinalizeInfo): BuildReport {
     schemaVersion: GAME_SCHEMA_VERSION,
     pokeapiSha: info.pokeapiSha,
     pkmnVersion: info.pkmnVersion,
+    spritesSha: info.spritesSha,
+    criesSha: info.criesSha,
     builtAt,
     dedupeLearnsets: ctx.options.dedupeLearnsets ?? false,
     learnsetDedupePotential,

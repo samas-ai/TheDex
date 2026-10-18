@@ -1,12 +1,20 @@
 /**
- * RNF07 benchmark: ~1000 search queries (1–12 chars, several languages incl. CJK) against
- * the real thedex-data.db. Fails when p95 ≥ 100 ms or the "char" ordering regresses.
+ * RNF07 benchmark: ~1000 search queries (1–12 chars, several languages incl. CJK) and the
+ * Pokédex list (RF01) with every sort and filter, against the real thedex-data.db. Fails when
+ * a p95 is ≥ 100 ms or the "char" ordering regresses.
  */
 import path from 'node:path';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { searchQuery } from '@thedex/db';
+import {
+  listPokedex,
+  POKEDEX_SORT_KEYS,
+  resolveGameContext,
+  searchQuery,
+  type PokedexFilters,
+} from '@thedex/db';
 import { DATA_DB_FILE, DIST_DIR } from '../config';
+import { openAppLikeConnection } from '../query-plans';
 
 const BUDGET_MS = 100;
 const QUERY_COUNT = 1000;
@@ -119,13 +127,51 @@ const expectedOrder = [
 const positions = expectedOrder.map((name) => names.indexOf(name));
 const orderOk = positions.every((p, i) => p >= 0 && (i === 0 || p > positions[i - 1]!));
 
+// --- Pokédex list (RF01.3 filters / RF01.4 sorts), on the app's connection layout ------
+const app = openAppLikeConnection(path.join(DIST_DIR, DATA_DB_FILE));
+const appDb = drizzle(app);
+const FILTERS: readonly PokedexFilters[] = [
+  {},
+  { typeIds: [10] },
+  { typeIds: [11, 3] },
+  { generationIds: [1, 2] },
+  { regionIds: [1] },
+  { abilityId: 26 },
+  { eggGroupId: 1 },
+  { tags: ['legendary', 'mythical'] },
+  { capture: { scope: 'national', status: 'not-caught' } },
+  { includeForms: false },
+];
+const listTimings: number[] = [];
+let listRows = 0;
+for (const game of ['red-blue', 'emerald', 'sword-shield', 'scarlet-violet']) {
+  const ctx = await resolveGameContext(appDb, game, ['pt-BR', 'en']);
+  await listPokedex(appDb, ctx); // warm-up
+  for (const key of POKEDEX_SORT_KEYS) {
+    for (const filters of FILTERS) {
+      const started = performance.now();
+      listRows += (await listPokedex(appDb, ctx, { filters, sort: { key, direction: 'desc' } }))
+        .length;
+      listTimings.push(performance.now() - started);
+    }
+  }
+}
+app.close();
+const listP95 = percentile(listTimings, 95);
+console.log(
+  `Pokédex list — ${listTimings.length} queries (${listRows} rows): p50 ${fmt(percentile(listTimings, 50))} · ` +
+    `p95 ${fmt(listP95)} · max ${fmt(Math.max(...listTimings))}`,
+);
+
 const p95 = percentile(timings, 95);
 db.close();
-if (p95 >= BUDGET_MS || !orderOk) {
+if (p95 >= BUDGET_MS || listP95 >= BUDGET_MS || !orderOk) {
   console.error(
-    `✗ ${!orderOk ? '"char" ordering regressed' : `p95 ${fmt(p95)} ≥ ${BUDGET_MS} ms`}`,
+    `✗ ${!orderOk ? '"char" ordering regressed' : `p95 search ${fmt(p95)} / list ${fmt(listP95)} ≥ ${BUDGET_MS} ms`}`,
   );
   process.exitCode = 1;
 } else {
-  console.log(`✓ p95 ${fmt(p95)} < ${BUDGET_MS} ms and "char" ordering correct`);
+  console.log(
+    `✓ search p95 ${fmt(p95)} and list p95 ${fmt(listP95)} < ${BUDGET_MS} ms; "char" ordering correct`,
+  );
 }

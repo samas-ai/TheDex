@@ -1,0 +1,50 @@
+import type { MediaAsset } from '@thedex/db';
+
+/** Path of a downloaded asset under the media root: `<style>/<variant>/<file>`. */
+export function localMediaPath(asset: Pick<MediaAsset, 'style' | 'variant' | 'path'>): string[] {
+  return [asset.style, asset.variant, asset.path];
+}
+
+/**
+ * Cry variant for a game: the original 8-bit-era cries (`legacy`, Gen 1–5 Pokémon) in games of
+ * those generations, else the modern one. Falls back to whatever exists.
+ */
+export function cryVariantFor(
+  generationId: number,
+  available: ReadonlySet<string>,
+): 'latest' | 'legacy' | null {
+  const preferred = generationId <= 5 ? 'legacy' : 'latest';
+  if (available.has(preferred)) return preferred;
+  if (available.has('latest')) return 'latest';
+  return available.has('legacy') ? 'legacy' : null;
+}
+
+/** `1.2 MB`-style size for the media settings. */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ['KB', 'MB', 'GB'];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  return `${value >= 100 ? value.toFixed(0) : value.toFixed(1)} ${units[unit]}`;
+}
+
+/** Runs `task` over `items` with at most `concurrency` in flight; stops early when aborted. */
+export async function runPool<T>(
+  items: readonly T[],
+  concurrency: number,
+  task: (item: T) => Promise<void>,
+  signal?: { readonly aborted: boolean },
+): Promise<void> {
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length && !signal?.aborted) {
+      const item = items[next++]!;
+      await task(item);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+}

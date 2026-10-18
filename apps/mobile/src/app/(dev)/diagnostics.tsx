@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { getDataMeta, getTableCounts, searchQuery, type SearchHit } from '@thedex/db';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
+import { useTheme } from '../../shared/theme/ThemeProvider';
+import { ThemedText as Text } from '../../shared/ui/primitives';
 
 const COUNTED_TABLES = [
   'pokemon_species',
@@ -26,6 +28,7 @@ const LANG_CHAINS: Record<string, readonly string[]> = {
  */
 export default function Diagnostics() {
   const { db, dataVersion, installedNow } = useAppDatabase();
+  const theme = useTheme();
   const [meta, setMeta] = useState<Record<string, string>>({});
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [query, setQuery] = useState('char');
@@ -57,7 +60,7 @@ export default function Diagnostics() {
   }, [db, query, lang]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Stack.Screen options={{ title: 'Diagnostics' }} />
       <Text style={styles.mono}>
         data_version {dataVersion}
@@ -75,7 +78,11 @@ export default function Diagnostics() {
 
       <View style={styles.row}>
         {Object.keys(LANG_CHAINS).map((key) => (
-          <Pressable key={key} onPress={() => setLang(key)} style={styles.chip}>
+          <Pressable
+            key={key}
+            onPress={() => setLang(key)}
+            style={[styles.chip, { borderColor: theme.colors.border }]}
+          >
             <Text style={key === lang ? styles.bold : undefined}>{key}</Text>
           </Pressable>
         ))}
@@ -86,9 +93,12 @@ export default function Diagnostics() {
         autoCapitalize="none"
         autoCorrect={false}
         placeholder="Search…"
-        style={styles.input}
+        placeholderTextColor={theme.colors.textMuted}
+        style={[styles.input, { borderColor: theme.colors.border, color: theme.colors.text }]}
       />
-      <Text style={elapsedMs !== null && elapsedMs >= 100 ? styles.bad : styles.good}>
+      <Text
+        color={elapsedMs !== null && elapsedMs >= 100 ? theme.colors.danger : theme.colors.success}
+      >
         {elapsedMs === null ? '…' : `${elapsedMs.toFixed(1)} ms · ${hits.length} hits`}
       </Text>
       <FlatList
@@ -112,6 +122,4 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
   bold: { fontWeight: '700' },
   input: { borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 16 },
-  good: { color: 'green' },
-  bad: { color: 'red' },
 });

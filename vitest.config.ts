@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    projects: ['packages/*', 'tools/*'],
+    projects: ['packages/*', 'tools/*', 'apps/mobile'],
     // Coverage is enforced for the pure engine only (100%, see CLAUDE.md).
     coverage: {
       provider: 'v8',

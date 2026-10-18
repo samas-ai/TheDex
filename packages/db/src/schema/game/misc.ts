@@ -52,7 +52,26 @@ export const natures = sqliteTable('natures', {
 });
 export const natureI18n = nameTable('nature_i18n', 'nature_id', () => natures.id);
 
-/** Downloadable media manifest (sprites/cries per style). Populated in Phase 2. */
+/**
+ * Where each media style/variant is downloaded from: an immutable URL prefix pinned to a
+ * PokeAPI/sprites or PokeAPI/cries commit (data/curated is not involved; see config.ts).
+ */
+export const mediaSources = sqliteTable(
+  'media_sources',
+  {
+    /** official | pixel | 3d | home | cry */
+    style: text('style').notNull(),
+    /** default | shiny (sprites), latest | legacy (cries) */
+    variant: text('variant').notNull(),
+    /** URL prefix; an asset URL is `${base_url}/${media_assets.path}`. */
+    baseUrl: text('base_url').notNull(),
+    /** File format: png | gif | ogg (| m4a for the planned iOS cry pack). */
+    format: text('format').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.style, t.variant] })],
+);
+
+/** Downloadable media manifest: which files exist at the pinned commits, and their size. */
 export const mediaAssets = sqliteTable(
   'media_assets',
   {
@@ -61,8 +80,9 @@ export const mediaAssets = sqliteTable(
       .references(() => pokemon.id),
     /** official | pixel | 3d | home | cry */
     style: text('style').notNull(),
-    /** default | shiny | female | shiny-female | back | legacy ... */
+    /** default | shiny | latest | legacy */
     variant: text('variant').notNull(),
+    /** File name relative to the source's base_url (e.g. `25.png`). */
     path: text('path').notNull(),
     bytes: integer('bytes'),
   },

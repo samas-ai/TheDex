@@ -26,12 +26,18 @@ export async function resolveGameContext(
     version_group_id: number;
   }[];
 
+  const versions = (await db.all(sql`
+    SELECT version_id FROM game_versions WHERE game_id = ${row.id} ORDER BY version_id`)) as {
+    version_id: number;
+  }[];
+
   const chain = langChain.includes('en') ? langChain : [...langChain, 'en'];
   return {
     gameId: row.id,
     gameIdentifier: row.identifier,
     generationId: row.generation_id,
     versionGroupIds: versionGroups.map((vg) => vg.version_group_id),
+    versionIds: versions.map((version) => version.version_id),
     langChain: chain,
   };
 }

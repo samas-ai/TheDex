@@ -1,13 +1,25 @@
-import type Database from 'better-sqlite3';
+import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import {
+  getAbilityDetail,
+  getEvolutionChain,
+  getFlavorTexts,
   getLearnset,
   getPokemon,
+  getPokemonEncounters,
+  getPokemonForms,
+  getPokemonMedia,
+  getPokemonMoves,
+  getPokemonProfile,
+  listAbilities,
   listGamePokemon,
+  listPokedex,
+  POKEDEX_SORT_KEYS,
   resolveGameContext,
   searchQuery,
   type GameContext,
 } from '@thedex/db';
+import { userSchemaStatements } from '@thedex/db/user';
 
 /** Tables large enough that a full scan would break the <100 ms budget on a phone. */
 export const LARGE_TABLES: ReadonlySet<string> = new Set([
@@ -29,6 +41,10 @@ export const LARGE_TABLES: ReadonlySet<string> = new Set([
   'move_i18n',
   'item_i18n',
   'form_i18n',
+  'media_assets',
+  'pokemon_evolution',
+  'pokemon_dex_numbers',
+  'machines',
 ]);
 
 /** Table aliases used by the @thedex/db repositories. */
@@ -41,6 +57,12 @@ const ALIASES: Readonly<Record<string, string>> = {
   pm: 'pokemon_moves',
   si: 'species_i18n',
   fi: 'form_i18n',
+  e: 'encounters',
+  dn: 'pokemon_dex_numbers',
+  sft: 'species_flavor_text',
+  aft: 'ability_flavor_text',
+  ms: 'move_stats_by_vg',
+  mc: 'machines',
 };
 
 export interface PlanViolation {
@@ -58,7 +80,7 @@ interface CapturedQuery {
 /** `SCAN <large table>` lines (virtual-table scans and CTE scans are fine). */
 export function scanViolations(planDetails: readonly string[]): string[] {
   return planDetails.filter((detail) => {
-    const match = /^SCAN (\S+)/.exec(detail);
+    const match = /^SCAN (?:\w+\.)?(\S+)/.exec(detail);
     if (!match || detail.includes('VIRTUAL TABLE')) return false;
     const name = match[1]!;
     return LARGE_TABLES.has(ALIASES[name] ?? name);
@@ -66,16 +88,28 @@ export function scanViolations(planDetails: readonly string[]): string[] {
 }
 
 /**
- * Runs the hot repository queries (search, list, detail, learnset) through a logging Drizzle
- * instance and checks every captured statement with EXPLAIN QUERY PLAN.
+ * The app's connection layout: thedex-user.db as main (here in memory, migrated) with the
+ * game DB ATTACHed as `data`, so cross-DB queries (capture filter) are planned as on a phone.
+ */
+export function openAppLikeConnection(dataDbFile: string): Database.Database {
+  const app = new Database(':memory:');
+  for (const statement of userSchemaStatements()) app.exec(statement);
+  app.prepare('ATTACH DATABASE ? AS data').run(dataDbFile);
+  return app;
+}
+
+/**
+ * Runs the hot repository queries (search, Pokédex list with every filter and sort, profile
+ * tabs) through a logging Drizzle instance and checks every statement with EXPLAIN QUERY PLAN.
  */
 export async function checkHotQueryPlans(
   sqlite: Database.Database,
   sample: { game: string; pokemonId: number },
 ): Promise<{ checked: number; violations: PlanViolation[] }> {
+  const app = openAppLikeConnection(sqlite.name);
   const captured: CapturedQuery[] = [];
   let label = '';
-  const db = drizzle(sqlite, {
+  const db = drizzle(app, {
     logger: { logQuery: (sql, params) => captured.push({ label, sql, params }) },
   });
 
@@ -84,36 +118,68 @@ export async function checkHotQueryPlans(
     return fn();
   };
 
-  const ctx: GameContext = await run('resolveGameContext', () =>
-    resolveGameContext(db, sample.game, ['pt-BR', 'en']),
-  );
-  await run('search ≥3 chars', () => searchQuery(db, 'char', ctx));
-  await run('search <3 chars', () => searchQuery(db, 'pi', ctx));
-  await run('search CJK <3 chars', () =>
-    searchQuery(db, 'ピカ', { langChain: ['ja-Hrkt', 'ja', 'en'] }),
-  );
-  await run('listGamePokemon', () => listGamePokemon(db, ctx, { limit: 50, offset: 0 }));
-  await run('getPokemon', () => getPokemon(db, sample.pokemonId, ctx));
-  await run('getLearnset', () => getLearnset(db, sample.pokemonId, ctx));
-  captured.push({
-    label: 'move learners (RF03.3)',
-    sql: 'SELECT DISTINCT pokemon_id, method_id FROM pokemon_moves WHERE move_id = ? AND version_group_id IN (?, ?, ?)',
-    params: [85, ...ctx.versionGroupIds.concat(ctx.versionGroupIds).slice(0, 3)],
-  });
-  captured.push({
-    label: 'sort by attack (RF01.4)',
-    sql: 'SELECT pokemon_id FROM pokemon_stats_by_gen WHERE generation_id = ? ORDER BY attack DESC LIMIT 50',
-    params: [ctx.generationId],
-  });
-
-  const violations: PlanViolation[] = [];
-  for (const query of captured) {
-    const plan = sqlite
-      .prepare(`EXPLAIN QUERY PLAN ${query.sql}`)
-      .all(...(query.params as never[])) as { detail: string }[];
-    for (const detail of scanViolations(plan.map((row) => row.detail))) {
-      violations.push({ label: query.label, sql: query.sql, detail });
+  try {
+    const ctx: GameContext = await run('resolveGameContext', () =>
+      resolveGameContext(db, sample.game, ['pt-BR', 'en']),
+    );
+    await run('search ≥3 chars', () => searchQuery(db, 'char', ctx));
+    await run('search <3 chars', () => searchQuery(db, 'pi', ctx));
+    await run('search CJK <3 chars', () =>
+      searchQuery(db, 'ピカ', { langChain: ['ja-Hrkt', 'ja', 'en'] }),
+    );
+    await run('listGamePokemon', () => listGamePokemon(db, ctx, { limit: 50, offset: 0 }));
+    for (const key of POKEDEX_SORT_KEYS) {
+      await run(`listPokedex sort ${key}`, () =>
+        listPokedex(db, ctx, { sort: { key, direction: 'desc' } }),
+      );
     }
+    await run('listPokedex all filters', () =>
+      listPokedex(db, ctx, {
+        filters: {
+          typeIds: [13, 9],
+          generationIds: [1, 4],
+          regionIds: [1],
+          abilityId: 9,
+          eggGroupId: 6,
+          tags: ['legendary', 'starter'],
+          capture: { scope: 'national', status: 'caught' },
+          includeForms: false,
+        },
+        sort: { key: 'speed', direction: 'desc' },
+      }),
+    );
+    await run('listPokedex not caught', () =>
+      listPokedex(db, ctx, { filters: { capture: { scope: 'national', status: 'not-caught' } } }),
+    );
+    await run('listAbilities', () => listAbilities(db, ctx));
+    await run('getPokemon', () => getPokemon(db, sample.pokemonId, ctx));
+    await run('getPokemonProfile', () => getPokemonProfile(db, sample.pokemonId, ctx));
+    await run('getFlavorTexts', () => getFlavorTexts(db, sample.pokemonId, ctx));
+    await run('getAbilityDetail', () => getAbilityDetail(db, 9, ctx));
+    await run('getEvolutionChain', () => getEvolutionChain(db, sample.pokemonId, ctx));
+    await run('getPokemonForms', () => getPokemonForms(db, sample.pokemonId, ctx));
+    await run('getLearnset', () => getLearnset(db, sample.pokemonId, ctx));
+    await run('getPokemonMoves', () => getPokemonMoves(db, sample.pokemonId, ctx));
+    const kanto = await resolveGameContext(db, 'red-blue', ['en']).catch(() => ctx);
+    await run('getPokemonEncounters', () => getPokemonEncounters(db, sample.pokemonId, kanto));
+    await run('getPokemonMedia', () => getPokemonMedia(db, sample.pokemonId));
+    captured.push({
+      label: 'move learners (RF03.3)',
+      sql: 'SELECT DISTINCT pokemon_id, method_id FROM pokemon_moves WHERE move_id = ? AND version_group_id IN (?, ?, ?)',
+      params: [85, ...ctx.versionGroupIds.concat(ctx.versionGroupIds).slice(0, 3)],
+    });
+
+    const violations: PlanViolation[] = [];
+    for (const query of captured) {
+      const plan = app
+        .prepare(`EXPLAIN QUERY PLAN ${query.sql}`)
+        .all(...(query.params as never[])) as { detail: string }[];
+      for (const detail of scanViolations(plan.map((row) => row.detail))) {
+        violations.push({ label: query.label, sql: query.sql, detail });
+      }
+    }
+    return { checked: captured.length, violations };
+  } finally {
+    app.close();
   }
-  return { checked: captured.length, violations };
 }

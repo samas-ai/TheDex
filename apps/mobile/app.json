@@ -22,6 +22,18 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-router", ["expo-sqlite", { "enableFTS": true }], "expo-asset"]
+    "plugins": [
+      "expo-router",
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": true
+        }
+      ],
+      "expo-asset",
+      "expo-image",
+      "expo-audio",
+      "expo-localization"
+    ]
   }
 }

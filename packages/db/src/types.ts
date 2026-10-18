@@ -17,6 +17,8 @@ export interface GameContext {
   readonly generationId: number;
   /** Base version group first, then DLC version groups. */
   readonly versionGroupIds: readonly number[];
+  /** Every version of those version groups (flavor texts and encounters are per version). */
+  readonly versionIds: readonly number[];
   readonly langChain: readonly string[];
 }
 

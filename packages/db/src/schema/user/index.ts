@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export { userMigrations } from './migrations.generated';
+export { userSchemaStatements } from './statements';
 
 /**
  * thedex-user.db — user data, ready for cloud sync:

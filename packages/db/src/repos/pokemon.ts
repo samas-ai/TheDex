@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import { pickI18n, sqlList } from '../sql';
 import type { AnySQLiteDatabase, GameContext } from '../types';
 
@@ -38,11 +38,17 @@ export interface PokemonDetail {
   readonly stats: PokemonStats | null;
 }
 
-/** Display name of a variety: alternate-form name, else species name. */
-function pokemonName(idExpression: ReturnType<typeof sql>, langChain: readonly string[]) {
+/**
+ * Display name of a variety: the species name for default varieties ("Ogerpon", not "Teal
+ * Mask Ogerpon"), the form's full name for alternate ones ("Mega Charizard X"). Expects the
+ * variety aliased as `p` in the enclosing query.
+ */
+export function pokemonName(idExpression: SQL, langChain: readonly string[]): SQL {
   return sql`COALESCE(
-    (SELECT ${pickI18n('form_i18n', 'form_id', sql`f.id`, 'pokemon_name', langChain)}
-       FROM pokemon_forms f WHERE f.pokemon_id = ${idExpression} AND f.is_default = 1 LIMIT 1),
+    CASE WHEN p.is_default = 0 THEN
+      (SELECT ${pickI18n('form_i18n', 'form_id', sql`f.id`, 'pokemon_name', langChain)}
+         FROM pokemon_forms f WHERE f.pokemon_id = ${idExpression} AND f.is_default = 1 LIMIT 1)
+    END,
     ${pickI18n('species_i18n', 'species_id', sql`p.species_id`, 'name', langChain)},
     p.identifier)`;
 }
