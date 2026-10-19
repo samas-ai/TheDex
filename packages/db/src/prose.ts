@@ -1,13 +1,18 @@
 /**
- * PokeAPI prose embeds links as `[label]{kind:identifier}` (e.g. `[burn]{mechanic:burn}`,
- * `[]{move:tackle}`). Keeps the label, or a readable identifier when the label is empty.
+ * PokeAPI prose is Markdown-ish: links as `[label]{kind:identifier}` (e.g.
+ * `[burn]{mechanic:burn}`, `[]{move:tackle}`), definition lists (`Held in battle\n:   …`)
+ * with indented continuations, and double spaces after periods. Keeps link labels (or a
+ * readable identifier when empty), joins definitions to their term and collapses spaces.
  */
 export function stripProseMarkup(text: string): string {
   return text
     .replace(/\[([^\]]*)\]\{[a-z-]+:([a-z0-9-]+)\}/g, (_, label: string, identifier: string) =>
       label !== '' ? label : identifier.replaceAll('-', ' '),
     )
+    .replace(/\n:[ \t]+/g, ': ')
+    .replace(/\n[ \t]+/g, '\n')
     .replace(/[ \t]+\n/g, '\n')
+    .replace(/ {2,}/g, ' ')
     .trim();
 }
 

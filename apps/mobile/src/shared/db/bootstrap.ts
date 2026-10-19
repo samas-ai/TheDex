@@ -62,8 +62,15 @@ export async function openAppDatabase(): Promise<AppDatabase> {
   const db = drizzle(sqlite);
   await migrate(db, userMigrations);
 
-  const dataPath = `${toFilePath(String(defaultDatabaseDirectory))}/${DATA_DB_NAME}`;
-  sqlite.execSync(`ATTACH DATABASE '${dataPath.replaceAll("'", "''")}' AS data`);
+  // expo-sqlite may hand back the connection of an earlier mount (Fast Refresh, a remounted
+  // provider) with the game DB still attached: attaching twice fails with "already in use".
+  const attached = sqlite
+    .getAllSync<{ name: string }>('PRAGMA database_list')
+    .some((database) => database.name === 'data');
+  if (!attached) {
+    const dataPath = `${toFilePath(String(defaultDatabaseDirectory))}/${DATA_DB_NAME}`;
+    sqlite.execSync(`ATTACH DATABASE '${dataPath.replaceAll("'", "''")}' AS data`);
+  }
 
   return { db, sqlite, dataVersion: DATA_VERSION, installedNow };
 }

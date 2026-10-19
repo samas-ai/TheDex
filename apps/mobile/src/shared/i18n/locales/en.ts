@@ -224,7 +224,8 @@ export const en = {
   },
   moveDex: {
     searchPlaceholder: 'Search moves',
-    count: '{{count}} moves',
+    count_one: '{{count}} move',
+    count_other: '{{count}} moves',
     empty: 'No moves match these filters.',
     learnableOnly: 'Learnable in this game',
     noLearnsets: 'PokeAPI has no learnsets for this game: every move of its generation is listed.',
@@ -251,8 +252,7 @@ export const en = {
     accuracy: 'Accuracy',
     pp: 'PP',
     priority: 'Priority',
-    ppValue: '{{pp}} (max {{max}})',
-    category: 'Category',
+    ppMax: 'max {{max}}',
     target: 'Target',
     introduced: 'Introduced',
     machine: 'TM / HM / TR',
@@ -306,7 +306,6 @@ export const en = {
     mechanicNote:
       'Z-Moves exist in Sun/Moon and Ultra Sun/Ultra Moon; Max and G-Max Moves in Sword/Shield.',
     learners: {
-      count: '{{count}} Pokémon',
       none: 'No Pokémon learns this move in this game.',
       noData: 'PokeAPI has no learnsets for this game yet.',
       levels: 'Lv. {{levels}}',
@@ -314,7 +313,8 @@ export const en = {
   },
   abilityDex: {
     searchPlaceholder: 'Search abilities',
-    count: '{{count}} abilities',
+    count_one: '{{count}} ability',
+    count_other: '{{count}} abilities',
     empty: 'No abilities match.',
     none: 'Abilities were introduced in Generation 3.',
   },
@@ -332,7 +332,8 @@ export const en = {
   },
   itemDex: {
     searchPlaceholder: 'Search items',
-    count: '{{count}} items',
+    count_one: '{{count}} item',
+    count_other: '{{count}} items',
     empty: 'No items match.',
     all: 'All',
     groups: {
@@ -350,8 +351,6 @@ export const en = {
   item: {
     notFound: 'Item not found.',
     notInGame: 'Not found in this generation’s games.',
-    category: 'Category',
-    pocket: 'Bag pocket',
     prices: 'Prices',
     buy: 'Buy',
     sell: 'Sell',
@@ -384,7 +383,8 @@ export const en = {
   },
   locationDex: {
     searchPlaceholder: 'Search locations',
-    count: '{{count}} locations',
+    count_one: '{{count}} location',
+    count_other: '{{count}} locations',
     empty: 'No locations match.',
     encounters: 'Wild Pokémon',
     kinds: {
@@ -398,8 +398,6 @@ export const en = {
   },
   location: {
     notFound: 'Location not found.',
-    region: 'Region',
-    kind: 'Kind',
     encounters: 'Wild Pokémon',
     none: 'No wild Pokémon here in this game.',
     dataGap: 'PokeAPI has no encounter data for this game yet.',
@@ -412,8 +410,6 @@ export const en = {
     offenseNote: 'Best multiplier among the selected types (STAB coverage).',
     defense: 'Defending',
     defenseNote: 'Damage taken by a Pokémon with this typing.',
-    pokemonCount: '{{count}} Pokémon',
-    movesCount: '{{count}} moves',
     noPokemon: 'No Pokémon with this typing in this game.',
     noMoves: 'No moves of these types in this game.',
     chartNote: 'Rows attack, columns defend — generation {{number}}.',

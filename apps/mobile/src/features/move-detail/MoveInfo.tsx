@@ -5,7 +5,12 @@ import type { MoveDetail } from '@thedex/db';
 import { SPACING, type TypeAccent } from '@thedex/ui-tokens';
 import { useCatalog } from '../../entities/catalog/CatalogProvider';
 import { ItemIcon } from '../../entities/item/ItemIcon';
-import { describeMoveMeta, describeZBoosts, type Translate } from '../../entities/move/move-format';
+import {
+  describeMoveMeta,
+  describeZBoosts,
+  groupSignatures,
+  type Translate,
+} from '../../entities/move/move-format';
 import { useGame } from '../../shared/game/GameProvider';
 import { LinkRow } from '../../shared/ui/LinkRow';
 import { Card, InfoRow, Section, ThemedText } from '../../shared/ui/primitives';
@@ -144,11 +149,11 @@ export function MoveInfo({ move, accent }: { move: MoveDetail; accent: TypeAccen
                 {t('move.signatures')}
               </ThemedText>
             ) : null}
-            {move.zMove.signatures.map((signature, index) => (
+            {groupSignatures(move.zMove.signatures).map((signature) => (
               <LinkRow
-                key={`${signature.move.id}-${signature.pokemon?.id ?? index}`}
+                key={signature.move.id}
                 title={signature.move.name}
-                subtitle={[signature.pokemon?.name, signature.crystal?.name]
+                subtitle={[signature.pokemon.join(', '), signature.crystal?.name]
                   .filter(Boolean)
                   .join(' · ')}
                 leading={

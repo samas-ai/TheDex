@@ -1,4 +1,4 @@
-import type { LearnTab, MoveLearner, MoveMeta } from '@thedex/db';
+import type { LearnTab, MoveLearner, MoveMeta, NamedEntity, ZMoveInfo } from '@thedex/db';
 
 /** Minimal translate function (react-i18next's `t` fits). */
 export type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -73,6 +73,33 @@ export function describeZBoosts(
   const entries = Object.entries(boosts);
   if (entries.length === 0) return null;
   return entries.map(([stat, stages]) => `${statName(stat)} ${formatStages(stages)}`).join(', ');
+}
+
+export interface SignatureGroup {
+  readonly move: NamedEntity;
+  readonly crystal: NamedEntity | null;
+  /** Names of the Pokémon that can use it (e.g. every cap Pikachu). */
+  readonly pokemon: readonly string[];
+}
+
+/** Exclusive Z-Moves once each, with all the Pokémon that can use them (RF03.4). */
+export function groupSignatures(signatures: ZMoveInfo['signatures']): SignatureGroup[] {
+  const groups = new Map<
+    number,
+    { move: NamedEntity; crystal: NamedEntity | null; pokemon: string[] }
+  >();
+  for (const signature of signatures) {
+    const group = groups.get(signature.move.id) ?? {
+      move: signature.move,
+      crystal: signature.crystal,
+      pokemon: [],
+    };
+    if (signature.pokemon && !group.pokemon.includes(signature.pokemon.name)) {
+      group.pokemon.push(signature.pokemon.name);
+    }
+    groups.set(signature.move.id, group);
+  }
+  return [...groups.values()];
 }
 
 /** Learn tabs in display order (same as the profile's moveset, RF02.6). */

@@ -28,6 +28,7 @@ export function LocationDexScreen() {
   const theme = useTheme();
   const { db } = useAppDatabase();
   const { ctx } = useGame();
+  // The game's regions come first, so the selected chip is never scrolled out of view.
   const regions = useAsync(() => listLocationRegions(db, ctx), [db, ctx]);
   const [regionId, setRegionId] = useState<number | null>(null);
   const [inGameOnly, setInGameOnly] = useState(true);

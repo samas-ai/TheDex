@@ -5,6 +5,7 @@ import {
   describeZBoosts,
   formatMoveValue,
   formatPriority,
+  groupSignatures,
   learnersByTab,
 } from './move-format';
 
@@ -134,5 +135,24 @@ describe('learnersByTab (RF03.3)', () => {
     expect(tabs[0]?.[1][1]?.levels).toEqual([12, 30]);
     expect(tabs[1]?.[1][0]?.levels).toEqual([]);
     expect(learnersByTab([])).toEqual([]);
+  });
+});
+
+describe('groupSignatures (RF03.4)', () => {
+  it('lists each exclusive Z-Move once with every Pokémon that can use it', () => {
+    const move = { id: 719, identifier: '10-000-000-volt-thunderbolt', name: '10,000,000 Volt' };
+    const crystal = { id: 877, identifier: 'pikashunium-z--held', name: 'Pikashunium Z' };
+    const raichu = { id: 700, identifier: 'stoked-sparksurfer', name: 'Stoked Sparksurfer' };
+    expect(
+      groupSignatures([
+        { move: raichu, crystal: null, pokemon: { id: 10100, name: 'Alolan Raichu' } },
+        { move, crystal, pokemon: { id: 10094, name: 'Original Cap Pikachu' } },
+        { move, crystal, pokemon: { id: 10095, name: 'Hoenn Cap Pikachu' } },
+        { move, crystal, pokemon: null },
+      ]),
+    ).toEqual([
+      { move: raichu, crystal: null, pokemon: ['Alolan Raichu'] },
+      { move, crystal, pokemon: ['Original Cap Pikachu', 'Hoenn Cap Pikachu'] },
+    ]);
   });
 });

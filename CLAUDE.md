@@ -12,7 +12,7 @@ TheDex é uma Pokédex **100% offline**, multi-geração, com multilíngue dual 
 | 4    | RF08–RF11 (Team Builder/Showdown, Checklist, Comparador, Calculadoras) | —           |
 | 5    | Backup/restore e feature flags PRO                                     | —           |
 
-\* Falta validar num aparelho Android real (Expo Go / APK de release em modo avião): a tela de diagnóstico (Fase 1) e as telas das Fases 2 e 3. Os bundles Android e iOS compilam (`npx expo export --platform android|ios`), mas a UI ainda não rodou num aparelho.
+\* As telas das Fases 2 e 3 rodaram num emulador Android 35 (Expo Go, dados reais), mas falta validar num aparelho real (APK de release em modo avião) e num iPhone. Os bundles Android e iOS compilam (`npx expo export --platform android|ios`).
 
 ---
 
@@ -37,6 +37,8 @@ O `better-sqlite3` ≥ 13 já traz binários prontos. Ele fica em `ignoredBuiltD
 | `pnpm --filter @thedex/mobile start`            | Metro/Expo (rode `pnpm data:build` antes: o app embarca o `.db`)                               |
 | `npx expo install <pkg>` (em `apps/mobile`)     | Única forma de adicionar dependências ao app (resolve versões compatíveis com o SDK)           |
 | `npx expo export --platform android` (ou `ios`) | Gera o bundle JS + assets (verifica a resolução do monorepo sem aparelho)                      |
+
+**Emulador Android:** com o Metro rodando (`pnpm --filter @thedex/mobile start`), rode `adb reverse tcp:8081 tcp:8081` e abra `exp://127.0.0.1:8081` no Expo Go. Pelo IP da LAN o bundle carrega, mas o download do banco de 56 MB falha ("Unable to download asset"). Rotas abrem direto com `adb shell am start -a android.intent.action.VIEW -d "exp://127.0.0.1:8081/--/move/85"`.
 
 ---
 

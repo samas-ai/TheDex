@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { listNatures, type NatureEntry } from '@thedex/db';
 import { RADII, SPACING, withAlpha } from '@thedex/ui-tokens';
@@ -15,7 +15,9 @@ import { natureMatrix } from './nature-logic';
 
 const TABS = ['matrix', 'list'] as const;
 type NatureTab = (typeof TABS)[number];
-const CELL_WIDTH = 92;
+/** Row header width; the five columns share the rest of the screen. */
+const ROW_HEADER = 76;
+const MIN_CELL = 58;
 
 /** RF07.2: the 25 natures as a matrix and a list, with stat changes and flavors. */
 export function NatureDexScreen() {
@@ -62,6 +64,9 @@ function NatureMatrixView({ natures }: { natures: readonly NatureEntry[] }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const matrix = natureMatrix(natures);
+  // Five columns share the screen beside the row headers, never narrower than MIN_CELL.
+  const { width } = useWindowDimensions();
+  const cell = { width: Math.max(MIN_CELL, (width - 2 * SPACING.lg - ROW_HEADER) / 5) };
   return (
     <View style={styles.gap}>
       <ThemedText variant="caption" muted>
@@ -72,8 +77,15 @@ function NatureMatrixView({ natures }: { natures: readonly NatureEntry[] }) {
           <View style={styles.matrixRow}>
             <View style={styles.cornerCell} />
             {matrix.stats.map((stat) => (
-              <View key={stat.id} style={styles.headerCell}>
-                <ThemedText variant="caption" bold color={theme.colors.danger}>
+              <View key={stat.id} style={[styles.headerCell, cell]}>
+                <ThemedText
+                  variant="caption"
+                  bold
+                  color={theme.colors.danger}
+                  style={styles.center}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
                   {`−${stat.name}`}
                 </ThemedText>
               </View>
@@ -91,6 +103,7 @@ function NatureMatrixView({ natures }: { natures: readonly NatureEntry[] }) {
                   key={column}
                   style={[
                     styles.cell,
+                    cell,
                     {
                       backgroundColor:
                         row === column ? theme.colors.surfaceVariant : theme.colors.surface,
@@ -98,7 +111,13 @@ function NatureMatrixView({ natures }: { natures: readonly NatureEntry[] }) {
                     },
                   ]}
                 >
-                  <ThemedText variant="small" bold={row !== column} muted={row === column}>
+                  <ThemedText
+                    variant="caption"
+                    bold={row !== column}
+                    muted={row === column}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
                     {nature?.name ?? ''}
                   </ThemedText>
                 </View>
@@ -168,14 +187,14 @@ const styles = StyleSheet.create({
   gap: { gap: SPACING.sm },
   matrixRow: { flexDirection: 'row' },
   cornerCell: {
-    width: CELL_WIDTH,
+    width: ROW_HEADER,
     minHeight: 44,
     justifyContent: 'center',
     paddingRight: SPACING.xs,
   },
-  headerCell: { width: CELL_WIDTH, paddingVertical: SPACING.xs, alignItems: 'center' },
+  headerCell: { paddingVertical: SPACING.xs, alignItems: 'center', justifyContent: 'flex-end' },
+  center: { textAlign: 'center' },
   cell: {
-    width: CELL_WIDTH,
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',

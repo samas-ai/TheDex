@@ -5,7 +5,7 @@ import {
   ThemeProvider as NavigationThemeProvider,
 } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { I18nextProvider, useTranslation } from 'react-i18next';
 import { CatalogProvider } from '../entities/catalog/CatalogProvider';
 import { DatabaseProvider } from '../shared/db/DatabaseProvider';
@@ -33,7 +33,12 @@ export default function RootLayout() {
 function LocalizedApp() {
   const { settings, deviceLanguage } = useSettings();
   const language = resolveUiLanguage(settings.uiLang, deviceLanguage);
-  const i18n = useMemo(() => initI18n(language), [language]);
+  // Initialized once with the startup language. Later switches go through an effect:
+  // changeLanguage notifies every useTranslation(), which must not happen while rendering.
+  const [i18n] = useState(() => initI18n(language));
+  useEffect(() => {
+    if (i18n.language !== language) void i18n.changeLanguage(language);
+  }, [i18n, language]);
   return (
     <I18nextProvider i18n={i18n}>
       <ThemeProvider>

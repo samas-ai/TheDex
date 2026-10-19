@@ -38,8 +38,8 @@ export function LocationDetailScreen({ locationId }: { locationId: number }) {
   const rows = useMemo((): EncounterRow[] => {
     const areas = encounters.data ?? [];
     return areas.flatMap((area): EncounterRow[] => [
-      // A single unnamed area needs no header.
-      ...(areas.length > 1 || area.areaName
+      // A location with a single area needs no header.
+      ...(areas.length > 1
         ? [
             {
               type: 'header' as const,

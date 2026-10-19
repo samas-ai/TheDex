@@ -11,6 +11,19 @@ describe('stripProseMarkup', () => {
     );
     expect(stripProseMarkup('  Plain text.  \n')).toBe('Plain text.');
   });
+
+  it('joins definition lists to their term and collapses double spaces', () => {
+    expect(
+      stripProseMarkup(
+        'Used in battle\n:   Catches a wild Pokémon.\n\n    If used in a trainer battle,  nothing happens.',
+      ),
+    ).toBe(
+      'Used in battle: Catches a wild Pokémon.\n\nIf used in a trainer battle, nothing happens.',
+    );
+    expect(stripProseMarkup('Inflicts regular damage.  Has a chance to paralyze.')).toBe(
+      'Inflicts regular damage. Has a chance to paralyze.',
+    );
+  });
 });
 
 describe('splitOverworldProse', () => {

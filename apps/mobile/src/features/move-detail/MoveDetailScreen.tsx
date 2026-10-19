@@ -170,10 +170,8 @@ function MoveHeader({ move, accent }: { move: MoveDetail; accent: TypeAccent }) 
             },
             {
               label: t('move.pp'),
-              value:
-                stats.pp === null || stats.maxPp === null
-                  ? '—'
-                  : t('move.ppValue', { pp: stats.pp, max: stats.maxPp }),
+              value: formatMoveValue(stats.pp),
+              detail: stats.maxPp === null ? undefined : t('move.ppMax', { max: stats.maxPp }),
             },
             { label: t('move.priority'), value: formatPriority(stats.priority) },
           ]}

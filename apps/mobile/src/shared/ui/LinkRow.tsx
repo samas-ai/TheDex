@@ -49,7 +49,7 @@ export function StatTiles({
   items,
   color,
 }: {
-  items: readonly { readonly label: string; readonly value: string }[];
+  items: readonly { readonly label: string; readonly value: string; readonly detail?: string }[];
   color?: string;
 }) {
   const theme = useTheme();
@@ -60,14 +60,19 @@ export function StatTiles({
           key={item.label}
           style={[styles.tile, { backgroundColor: theme.colors.surface }]}
           accessible
-          accessibilityLabel={`${item.label}: ${item.value}`}
+          accessibilityLabel={`${item.label}: ${item.value}${item.detail ? ` (${item.detail})` : ''}`}
         >
           <ThemedText variant="caption" muted>
             {item.label}
           </ThemedText>
-          <ThemedText variant="title" bold color={color}>
+          <ThemedText variant="title" bold color={color} style={styles.center}>
             {item.value}
           </ThemedText>
+          {item.detail ? (
+            <ThemedText variant="caption" muted style={styles.center}>
+              {item.detail}
+            </ThemedText>
+          ) : null}
         </View>
       ))}
     </View>
@@ -85,4 +90,5 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 2,
   },
+  center: { textAlign: 'center' },
 });

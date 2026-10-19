@@ -12,7 +12,11 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     openAppDatabase()
       .then(setDatabase)
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+      .catch((e: unknown) => {
+        // The cause chain (native exception) only reaches the device log.
+        console.error('openAppDatabase failed', e, e instanceof Error ? e.cause : undefined);
+        setError(e instanceof Error ? e.message : String(e));
+      });
   }, []);
 
   if (error) {

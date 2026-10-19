@@ -58,7 +58,10 @@ export interface LocationRegion extends NamedEntity {
   readonly inGame: boolean;
 }
 
-/** Regions with locations (RF06.1), Kanto to Paldea, flagging the context game's. */
+/**
+ * Regions with locations (RF06.1), flagging the context game's: the region of the game's
+ * first regional Pokédex (Johto for HeartGold), then its other regions, then Kanto to Paldea.
+ */
 export async function listLocationRegions(
   db: AnySQLiteDatabase,
   ctx: GameContext,
@@ -69,7 +72,10 @@ export async function listLocationRegions(
       ${inGameRegion(ctx, sql`r.id`)} AS in_game
     FROM regions r
     WHERE EXISTS (SELECT 1 FROM locations l WHERE l.region_id = r.id)
-    ORDER BY r.id`)) as { id: number; identifier: string; name: string; in_game: number }[];
+    ORDER BY r.id IS (SELECT d.region_id FROM game_pokedexes gd
+                      JOIN pokedexes d ON d.id = gd.pokedex_id
+                      WHERE gd.game_id = ${ctx.gameId} ORDER BY gd.sort_order LIMIT 1) DESC,
+      in_game DESC, r.id`)) as { id: number; identifier: string; name: string; in_game: number }[];
   return rows.map((row) => ({
     id: row.id,
     identifier: row.identifier,

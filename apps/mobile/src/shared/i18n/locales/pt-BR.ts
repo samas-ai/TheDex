@@ -226,7 +226,8 @@ export const ptBR: Translations = {
   },
   moveDex: {
     searchPlaceholder: 'Buscar golpes',
-    count: '{{count}} golpes',
+    count_one: '{{count}} golpe',
+    count_other: '{{count}} golpes',
     empty: 'Nenhum golpe corresponde a esses filtros.',
     learnableOnly: 'Aprendidos neste jogo',
     noLearnsets:
@@ -254,8 +255,7 @@ export const ptBR: Translations = {
     accuracy: 'Precisão',
     pp: 'PP',
     priority: 'Prioridade',
-    ppValue: '{{pp}} (máx. {{max}})',
-    category: 'Categoria',
+    ppMax: 'máx. {{max}}',
     target: 'Alvo',
     introduced: 'Introduzido',
     machine: 'MT / MO / DT',
@@ -309,7 +309,6 @@ export const ptBR: Translations = {
     mechanicNote:
       'Golpes Z existem em Sun/Moon e Ultra Sun/Ultra Moon; Golpes Max e G-Max em Sword/Shield.',
     learners: {
-      count: '{{count}} Pokémon',
       none: 'Nenhum Pokémon aprende este golpe neste jogo.',
       noData: 'A PokeAPI ainda não tem os golpes aprendidos deste jogo.',
       levels: 'Nv. {{levels}}',
@@ -317,7 +316,8 @@ export const ptBR: Translations = {
   },
   abilityDex: {
     searchPlaceholder: 'Buscar habilidades',
-    count: '{{count}} habilidades',
+    count_one: '{{count}} habilidade',
+    count_other: '{{count}} habilidades',
     empty: 'Nenhuma habilidade corresponde.',
     none: 'As habilidades surgiram na Geração 3.',
   },
@@ -335,7 +335,8 @@ export const ptBR: Translations = {
   },
   itemDex: {
     searchPlaceholder: 'Buscar itens',
-    count: '{{count}} itens',
+    count_one: '{{count}} item',
+    count_other: '{{count}} itens',
     empty: 'Nenhum item corresponde.',
     all: 'Todos',
     groups: {
@@ -353,8 +354,6 @@ export const ptBR: Translations = {
   item: {
     notFound: 'Item não encontrado.',
     notInGame: 'Não aparece nos jogos desta geração.',
-    category: 'Categoria',
-    pocket: 'Bolso da mochila',
     prices: 'Preços',
     buy: 'Compra',
     sell: 'Venda',
@@ -387,7 +386,8 @@ export const ptBR: Translations = {
   },
   locationDex: {
     searchPlaceholder: 'Buscar locais',
-    count: '{{count}} locais',
+    count_one: '{{count}} local',
+    count_other: '{{count}} locais',
     empty: 'Nenhum local corresponde.',
     encounters: 'Pokémon selvagens',
     kinds: {
@@ -401,8 +401,6 @@ export const ptBR: Translations = {
   },
   location: {
     notFound: 'Local não encontrado.',
-    region: 'Região',
-    kind: 'Tipo',
     encounters: 'Pokémon selvagens',
     none: 'Nenhum Pokémon selvagem aqui neste jogo.',
     dataGap: 'A PokeAPI ainda não tem os encontros deste jogo.',
@@ -420,8 +418,6 @@ export const ptBR: Translations = {
     offenseNote: 'Melhor multiplicador entre os tipos escolhidos (cobertura com STAB).',
     defense: 'Defendendo',
     defenseNote: 'Dano recebido por um Pokémon com esta tipagem.',
-    pokemonCount: '{{count}} Pokémon',
-    movesCount: '{{count}} golpes',
     noPokemon: 'Nenhum Pokémon com esta tipagem neste jogo.',
     noMoves: 'Nenhum golpe destes tipos neste jogo.',
     chartNote: 'Linhas atacam, colunas defendem — geração {{number}}.',

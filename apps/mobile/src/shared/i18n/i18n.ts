@@ -11,7 +11,10 @@ declare module 'i18next' {
   }
 }
 
-/** Initializes i18next once (UI strings only; game data comes from the DB, RNF05). */
+/**
+ * Initializes i18next once (UI strings only; game data comes from the DB, RNF05) with the
+ * startup language. Switching languages is the caller's job, outside render.
+ */
 export function initI18n(language: UiLanguage) {
   if (!i18next.isInitialized) {
     void i18next.use(initReactI18next).init({
@@ -22,8 +25,6 @@ export function initI18n(language: UiLanguage) {
       // Resources are bundled, so translations are ready synchronously on first render.
       initAsync: false,
     });
-  } else if (i18next.language !== language) {
-    void i18next.changeLanguage(language);
   }
   return i18next;
 }
