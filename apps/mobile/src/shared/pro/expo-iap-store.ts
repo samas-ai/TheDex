@@ -20,9 +20,9 @@ const expoIapStore: StoreApi<Purchase> = {
     if (!(await initConnection())) throw new Error('The store connection failed.');
   },
   getPurchases: () => getAvailablePurchases({ onlyIncludeActiveItemsIOS: true }),
-  hasProduct: async (productId) => {
+  getProduct: async (productId) => {
     const products = await fetchProducts({ skus: [productId], type: 'in-app' });
-    return (products ?? []).some((product) => product.id === productId);
+    return (products ?? []).find((product) => product.id === productId) ?? null;
   },
   requestPurchase: async (productId) => {
     await requestPurchase({

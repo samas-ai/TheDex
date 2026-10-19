@@ -17,6 +17,8 @@ interface ProValue {
   readonly storeAvailable: boolean;
   readonly purchase: () => Promise<void>;
   readonly restore: () => Promise<void>;
+  /** The store's localized PRO price (network), or null. */
+  readonly loadPrice: () => Promise<string | null>;
   /** Development builds only: the simulated plan (null = the store's). */
   readonly simulated: Plan | null;
   readonly simulate: ((plan: Plan | null) => void) | null;
@@ -57,6 +59,7 @@ export function ProProvider({
 
   const purchase = useCallback(async () => setStored(await source.purchase()), [source]);
   const restore = useCallback(async () => setStored(await source.restore()), [source]);
+  const loadPrice = useCallback(() => source.price(), [source]);
 
   const value = useMemo<ProValue | null>(
     () =>
@@ -67,10 +70,11 @@ export function ProProvider({
             storeAvailable: source.storeAvailable,
             purchase,
             restore,
+            loadPrice,
             simulated,
             simulate: __DEV__ ? setSimulated : null,
           },
-    [stored, simulated, source.storeAvailable, purchase, restore],
+    [stored, simulated, source.storeAvailable, purchase, restore, loadPrice],
   );
   if (!value) return null;
   return <ProContext.Provider value={value}>{children}</ProContext.Provider>;

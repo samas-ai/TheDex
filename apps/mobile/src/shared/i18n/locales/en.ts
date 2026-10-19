@@ -764,8 +764,12 @@ export const en = {
       theme: { amoled: { title: 'AMOLED theme', hint: 'Pure black, easy on OLED screens.' } },
     },
     buy: 'Get PRO',
+    buyFor: 'Get PRO · {{price}}',
+    oneTime: 'One-time purchase: PRO is yours for good, no subscription.',
     restore: 'Restore purchase',
     storeUnavailable: 'Purchases are not available in this build of the app.',
+    storeUnreachable:
+      'Could not reach the store. Check your internet connection and your store account, then try again.',
     pending: 'Purchase pending. PRO unlocks as soon as the store confirms the payment.',
     simulate: 'Simulate plan (development)',
     simulateHint: 'Development builds only: try the free and PRO experiences without a purchase.',

@@ -775,8 +775,12 @@ export const ptBR: Translations = {
       theme: { amoled: { title: 'Tema AMOLED', hint: 'Preto absoluto, que poupa as telas OLED.' } },
     },
     buy: 'Quero o PRO',
+    buyFor: 'Quero o PRO · {{price}}',
+    oneTime: 'Pagamento único: o PRO é seu para sempre, sem assinatura.',
     restore: 'Restaurar compra',
     storeUnavailable: 'As compras não estão disponíveis nesta build do app.',
+    storeUnreachable:
+      'Não foi possível falar com a loja. Confira a conexão com a internet e a sua conta da loja e tente de novo.',
     pending: 'Compra pendente. O PRO é liberado assim que a loja confirmar o pagamento.',
     simulate: 'Simular plano (desenvolvimento)',
     simulateHint:

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SPACING } from '@thedex/ui-tokens';
-import { PurchasePendingError } from '../../shared/pro/entitlement-source';
+import { PurchasePendingError, StoreUnavailableError } from '../../shared/pro/entitlement-source';
 import {
   FEATURE_KEYS,
   FREE_TEAM_LIMIT,
@@ -10,6 +10,7 @@ import {
   type FeatureKey,
 } from '../../shared/pro/features';
 import { usePro } from '../../shared/pro/ProProvider';
+import { useAsync } from '../../shared/hooks/useAsync';
 import { useTheme } from '../../shared/theme/ThemeProvider';
 import { Icon, type IconName } from '../../shared/ui/Icon';
 import { Button, Card, Chip, Section, styles as ui, ThemedText } from '../../shared/ui/primitives';
@@ -28,6 +29,11 @@ export function ProScreen() {
   const theme = useTheme();
   const pro = usePro();
   const [busy, setBusy] = useState(false);
+  const offerPrice = pro.plan === 'free' && pro.storeAvailable;
+  const { data: price } = useAsync(
+    () => (offerPrice ? pro.loadPrice() : Promise.resolve(null)),
+    [offerPrice, pro.loadPrice],
+  );
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
@@ -35,6 +41,7 @@ export function ProScreen() {
       await action();
     } catch (e) {
       if (e instanceof PurchasePendingError) Alert.alert(t('pro.pending'));
+      else if (e instanceof StoreUnavailableError) Alert.alert(t('pro.storeUnreachable'));
       else Alert.alert(t('common.error', { message: e instanceof Error ? e.message : String(e) }));
     } finally {
       setBusy(false);
@@ -85,11 +92,15 @@ export function ProScreen() {
       {pro.plan === 'free' ? (
         <View style={styles.actions}>
           <Button
-            label={t('pro.buy')}
+            label={price ? t('pro.buyFor', { price }) : t('pro.buy')}
             onPress={() => void run(pro.purchase)}
             disabled={busy || !pro.storeAvailable}
           />
-          {pro.storeAvailable ? null : (
+          {pro.storeAvailable ? (
+            <ThemedText variant="small" muted style={styles.center}>
+              {t('pro.oneTime')}
+            </ThemedText>
+          ) : (
             <ThemedText variant="small" muted style={styles.center}>
               {t('pro.storeUnavailable')}
             </ThemedText>

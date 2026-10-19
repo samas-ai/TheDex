@@ -30,8 +30,8 @@ export default tseslint.config(
     },
   },
   {
-    // CommonJS tool configs (Metro, Babel).
-    files: ['**/*.config.js', '**/*.config.cjs'],
+    // CommonJS tool configs (Metro, Babel) and Expo config plugins.
+    files: ['**/*.config.js', '**/*.config.cjs', 'apps/mobile/plugins/**/*.cjs'],
     ignores: ['eslint.config.js'],
     languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
     rules: { '@typescript-eslint/no-require-imports': 'off' },

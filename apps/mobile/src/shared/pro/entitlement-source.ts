@@ -17,6 +17,11 @@ export interface EntitlementSource {
   /** Restores a purchase made on another device or before a reinstall. */
   restore(): Promise<Plan>;
   /**
+   * The PRO price as the store formats it for the user ("R$ 14,90"). Needs the network: null
+   * when the store is unreachable or does not sell the product. Never rejects.
+   */
+  price(): Promise<string | null>;
+  /**
    * Plan changes the store reports on its own: a pending payment that completes, a purchase
    * replayed at launch, or a `load` that answered late. Returns the unsubscribe function.
    */
@@ -31,10 +36,23 @@ export class PurchasePendingError extends Error {
   }
 }
 
+/**
+ * The store could not be reached or does not offer PRO right now: offline, signed out of the store
+ * (Play Billing answers `BILLING_UNAVAILABLE`), or the product is not published. The original
+ * failure is kept as `cause`.
+ */
+export class StoreUnavailableError extends Error {
+  constructor(cause?: unknown) {
+    super('The store is unavailable: check the connection and the store account.', { cause });
+    this.name = 'StoreUnavailableError';
+  }
+}
+
 /** No store in this runtime (Expo Go, web): everyone is on the free plan. */
 export const noStoreSource: EntitlementSource = {
   storeAvailable: false,
   load: () => Promise.resolve('free'),
   purchase: () => Promise.resolve('free'),
   restore: () => Promise.resolve('free'),
+  price: () => Promise.resolve(null),
 };

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { PurchasePendingError } from './entitlement-source';
+import { PurchasePendingError, StoreUnavailableError } from './entitlement-source';
 import {
   createStoreSource,
   planFromPurchases,
@@ -8,6 +8,7 @@ import {
   toStoreError,
   type StoreApi,
   type StoreError,
+  type StoreProduct,
   type StorePurchase,
 } from './store-source';
 
@@ -32,7 +33,11 @@ function fakeStore(purchases: StorePurchase[] = []) {
   const api = {
     connect: vi.fn(() => Promise.resolve()),
     getPurchases: vi.fn((): Promise<readonly StorePurchase[]> => Promise.resolve(purchases)),
-    hasProduct: vi.fn((productId: string) => Promise.resolve(productId === PRO_PRODUCT_ID)),
+    getProduct: vi.fn((productId: string): Promise<StoreProduct | null> =>
+      Promise.resolve(
+        productId === PRO_PRODUCT_ID ? { id: productId, displayPrice: 'R$ 14,90' } : null,
+      ),
+    ),
     requestPurchase: vi.fn((_productId: string) => Promise.resolve()),
     finish: vi.fn((_purchase: StorePurchase) => Promise.resolve()),
     restore: vi.fn(() => Promise.resolve()),
@@ -194,10 +199,71 @@ describe('store entitlement (RNF08)', () => {
 
   it('refuses to buy a product the store does not sell', async () => {
     const store = fakeStore();
-    store.api.hasProduct.mockResolvedValue(false);
+    store.api.getProduct.mockResolvedValue(null);
     const source = createStoreSource(store.api);
-    await expect(source.purchase()).rejects.toThrow(PRO_PRODUCT_ID);
+    const error = await source.purchase().catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(StoreUnavailableError);
+    expect(String((error as Error).cause)).toContain(PRO_PRODUCT_ID);
     expect(store.api.requestPurchase).not.toHaveBeenCalled();
+  });
+
+  it('reports an unreachable store when buying offline or signed out', async () => {
+    const store = fakeStore();
+    const offline = new Error('Failed to query product');
+    store.api.getProduct.mockRejectedValueOnce(offline);
+    const source = createStoreSource(store.api);
+    const error = await source.purchase().catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(StoreUnavailableError);
+    expect((error as Error).cause).toBe(offline);
+    expect(store.api.requestPurchase).not.toHaveBeenCalled();
+
+    const signedOut = fakeStore();
+    signedOut.api.connect.mockRejectedValueOnce(new Error('billing unavailable'));
+    await expect(createStoreSource(signedOut.api).purchase()).rejects.toBeInstanceOf(
+      StoreUnavailableError,
+    );
+    expect(signedOut.api.getProduct).not.toHaveBeenCalled();
+  });
+
+  it('reports an unreachable store when restoring fails, but not a closed sign-in', async () => {
+    const store = fakeStore();
+    store.api.restore
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockRejectedValueOnce({ code: 'user-cancelled', message: 'Cancelled' });
+    const source = createStoreSource(store.api);
+    await expect(source.restore()).rejects.toBeInstanceOf(StoreUnavailableError);
+    await expect(source.restore()).resolves.toBe('free');
+    expect(store.api.getPurchases).not.toHaveBeenCalled();
+  });
+
+  it('shows the price the store formats, fetching the product once', async () => {
+    const store = fakeStore();
+    store.api.requestPurchase.mockImplementation(async () => {
+      store.emitPurchase(pro());
+    });
+    const source = createStoreSource(store.api);
+    await expect(source.price()).resolves.toBe('R$ 14,90');
+    await expect(source.price()).resolves.toBe('R$ 14,90');
+    await expect(source.purchase()).resolves.toBe('pro');
+    expect(store.api.getProduct).toHaveBeenCalledTimes(1);
+    expect(store.api.getProduct).toHaveBeenCalledWith(PRO_PRODUCT_ID);
+  });
+
+  it('has no price offline or before the product is published, and asks again', async () => {
+    const store = fakeStore();
+    store.api.getProduct.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(null);
+    const source = createStoreSource(store.api);
+    await expect(source.price()).resolves.toBeNull();
+    await expect(source.price()).resolves.toBeNull();
+    await expect(source.price()).resolves.toBe('R$ 14,90');
+    expect(store.api.getProduct).toHaveBeenCalledTimes(3);
+  });
+
+  it('has no price when the store cannot connect', async () => {
+    const store = fakeStore();
+    store.api.connect.mockRejectedValueOnce(new Error('billing unavailable'));
+    await expect(createStoreSource(store.api).price()).resolves.toBeNull();
+    expect(store.api.getProduct).not.toHaveBeenCalled();
   });
 
   it('runs one purchase flow at a time', async () => {

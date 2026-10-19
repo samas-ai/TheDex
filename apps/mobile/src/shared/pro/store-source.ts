@@ -1,4 +1,8 @@
-import { PurchasePendingError, type EntitlementSource } from './entitlement-source';
+import {
+  PurchasePendingError,
+  StoreUnavailableError,
+  type EntitlementSource,
+} from './entitlement-source';
 import type { Plan } from './features';
 
 /** TheDex PRO in the stores: one non-consumable ("PRO forever"), same id on both. */
@@ -19,6 +23,13 @@ export interface StorePurchase {
   readonly isAcknowledgedAndroid?: boolean | null;
 }
 
+/** The part of a store product the PRO screen reads (expo-iap's `Product` has it). */
+export interface StoreProduct {
+  readonly id: string;
+  /** Localized by the store, in the account's currency. */
+  readonly displayPrice: string;
+}
+
 /** A failed purchase flow, with the OpenIAP error code (`user-cancelled`, `already-owned`…). */
 export interface StoreError {
   readonly code: string;
@@ -31,8 +42,8 @@ export interface StoreApi<P extends StorePurchase = StorePurchase> {
   connect(): Promise<void>;
   /** Purchases kept on the device (StoreKit current entitlements, Play Store cache). */
   getPurchases(): Promise<readonly P[]>;
-  /** Whether the store sells the product (needs the network). */
-  hasProduct(productId: string): Promise<boolean>;
+  /** The product, or null when the store does not sell it (needs the network). */
+  getProduct(productId: string): Promise<StoreProduct | null>;
   /** Opens the purchase sheet; the outcome arrives through `onPurchase` / `onError`. */
   requestPurchase(productId: string): Promise<void>;
   /** Finishes (iOS) or acknowledges (Android) a non-consumable purchase. */
@@ -109,6 +120,7 @@ export function createStoreSource<P extends StorePurchase>(
   let connection: Promise<void> | null = null;
   let flow: PurchaseFlow | null = null;
   let purchasing: Promise<Plan> | null = null;
+  let product: Promise<StoreProduct | null> | null = null;
 
   const setPlan = (next: Plan) => {
     if (next === plan) return;
@@ -174,10 +186,30 @@ export function createStoreSource<P extends StorePurchase>(
     return plan;
   };
 
+  // Kept once the store returns it; a failure or a missing product is asked again next time
+  // (the network may be back, or the product published meanwhile).
+  const fetchProduct = (): Promise<StoreProduct | null> => {
+    product ??= connect()
+      .then(() => api.getProduct(productId))
+      .then(
+        (found) => {
+          if (!found) product = null;
+          return found;
+        },
+        (error: unknown) => {
+          product = null;
+          throw error;
+        },
+      );
+    return product;
+  };
+
   const startPurchase = async (): Promise<Plan> => {
-    await connect();
-    if (!(await api.hasProduct(productId))) {
-      throw new Error(`The store does not sell "${productId}" yet.`);
+    const found = await fetchProduct().catch((error: unknown) => {
+      throw new StoreUnavailableError(error);
+    });
+    if (!found) {
+      throw new StoreUnavailableError(new Error(`The store does not sell "${productId}" yet.`));
     }
     const outcome = new Promise<Plan>((resolve, reject) => {
       flow = { resolve, reject };
@@ -197,10 +229,21 @@ export function createStoreSource<P extends StorePurchase>(
       return purchasing;
     },
     restore: async () => {
-      await connect();
-      await api.restore();
+      try {
+        await connect();
+        await api.restore();
+      } catch (error) {
+        // iOS asks to sign in to the App Store; closing that prompt is not a failure.
+        if (toStoreError(error).code === CANCELLED) return plan;
+        throw new StoreUnavailableError(error);
+      }
       return refresh();
     },
+    price: () =>
+      fetchProduct().then(
+        (found) => found?.displayPrice ?? null,
+        () => null,
+      ),
     subscribe: (listener) => {
       listeners.add(listener);
       return () => {
