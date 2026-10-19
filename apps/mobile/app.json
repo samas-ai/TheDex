@@ -8,9 +8,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.thedex.app",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.thedex.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -34,7 +36,8 @@
       "expo-image",
       "expo-audio",
       "expo-localization",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-iap"
     ]
   }
 }

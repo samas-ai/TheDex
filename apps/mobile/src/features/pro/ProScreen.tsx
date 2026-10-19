@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SPACING } from '@thedex/ui-tokens';
+import { PurchasePendingError } from '../../shared/pro/entitlement-source';
 import {
   FEATURE_KEYS,
   FREE_TEAM_LIMIT,
@@ -33,7 +34,8 @@ export function ProScreen() {
     try {
       await action();
     } catch (e) {
-      Alert.alert(t('common.error', { message: e instanceof Error ? e.message : String(e) }));
+      if (e instanceof PurchasePendingError) Alert.alert(t('pro.pending'));
+      else Alert.alert(t('common.error', { message: e instanceof Error ? e.message : String(e) }));
     } finally {
       setBusy(false);
     }

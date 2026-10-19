@@ -26,7 +26,9 @@ const ProContext = createContext<ProValue | null>(null);
 
 /**
  * Loads the user's plan once (from the store's offline cache) and renders children after it, so
- * gated screens never flash the wrong state. A failing source means the free plan.
+ * gated screens never flash the wrong state. A failing source means the free plan. Later changes
+ * the store reports (a pending payment that completes, a purchase replayed at launch) arrive
+ * through `source.subscribe`. The source must be stable: create it once, outside render.
  */
 export function ProProvider({
   children,
@@ -40,6 +42,7 @@ export function ProProvider({
 
   useEffect(() => {
     let cancelled = false;
+    const unsubscribe = source.subscribe?.((plan) => setStored(plan));
     source
       .load()
       .catch((): Plan => 'free')
@@ -48,6 +51,7 @@ export function ProProvider({
       });
     return () => {
       cancelled = true;
+      unsubscribe?.();
     };
   }, [source]);
 

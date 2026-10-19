@@ -776,7 +776,8 @@ export const ptBR: Translations = {
     },
     buy: 'Quero o PRO',
     restore: 'Restaurar compra',
-    storeUnavailable: 'As compras ainda não estão abertas nesta versão.',
+    storeUnavailable: 'As compras não estão disponíveis nesta build do app.',
+    pending: 'Compra pendente. O PRO é liberado assim que a loja confirmar o pagamento.',
     simulate: 'Simular plano (desenvolvimento)',
     simulateHint:
       'Só nas builds de desenvolvimento: teste a experiência grátis e a PRO sem comprar.',

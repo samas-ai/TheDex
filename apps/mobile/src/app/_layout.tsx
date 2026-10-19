@@ -12,10 +12,14 @@ import { DatabaseProvider } from '../shared/db/DatabaseProvider';
 import { GameProvider } from '../shared/game/GameProvider';
 import { initI18n } from '../shared/i18n/i18n';
 import { MediaProvider } from '../shared/media/MediaProvider';
+import { createEntitlementSource } from '../shared/pro/expo-iap-store';
 import { ProProvider } from '../shared/pro/ProProvider';
 import { resolveUiLanguage } from '../shared/settings/settings';
 import { SettingsProvider, useSettings } from '../shared/settings/SettingsProvider';
 import { ThemeProvider, useNavigationTheme, useTheme } from '../shared/theme/ThemeProvider';
+
+/** App Store / Play Store in native builds, no store in Expo Go and on the web (RNF08). */
+const entitlementSource = createEntitlementSource();
 
 /**
  * Provider order: databases → user settings → PRO plan (the theme needs `theme.amoled`) → UI
@@ -26,7 +30,7 @@ export default function RootLayout() {
   return (
     <DatabaseProvider>
       <SettingsProvider>
-        <ProProvider>
+        <ProProvider source={entitlementSource}>
           <LocalizedApp />
         </ProProvider>
       </SettingsProvider>
