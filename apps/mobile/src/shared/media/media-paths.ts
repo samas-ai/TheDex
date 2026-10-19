@@ -53,3 +53,12 @@ export async function runPool<T>(
   };
   await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
 }
+
+/**
+ * Whether a downloaded file is whole: its size matches the pinned listing's when known, else it
+ * is not empty. Cut-off downloads (app reloaded, network dropped) would otherwise stay cached
+ * and never render.
+ */
+export function isCompleteDownload(size: number, expectedBytes: number | null): boolean {
+  return expectedBytes !== null && expectedBytes > 0 ? size === expectedBytes : size > 0;
+}

@@ -1,4 +1,10 @@
-import { gameLangChain, isSpriteStyle, type SettingKey, type SpriteStyle } from '@thedex/db';
+import {
+  gameLangChain,
+  isSpriteStyle,
+  type ChecklistKind,
+  type SettingKey,
+  type SpriteStyle,
+} from '@thedex/db';
 import { isThemePreference, type ThemePreference } from '@thedex/ui-tokens';
 
 /** UI languages with a locale file (RNF05). `system` follows the device. */
@@ -18,6 +24,8 @@ export interface AppSettings {
   readonly spriteStyle: SpriteStyle;
   /** Curated game id, or null for DEFAULT_GAME_IDENTIFIER. */
   readonly gameId: number | null;
+  /** Collection the checklist and the Pokédex capture filter use (RF09): National Dex or game. */
+  readonly checklistKind: ChecklistKind;
 }
 
 /** Storage key of each setting. */
@@ -27,6 +35,7 @@ export const SETTING_KEY_OF: Readonly<Record<keyof AppSettings, SettingKey>> = {
   theme: 'theme',
   spriteStyle: 'sprite_style',
   gameId: 'game_id',
+  checklistKind: 'checklist_kind',
 };
 
 /** Matches a device language tag (`pt-PT`, `en-US`…) to a UI language. */
@@ -49,6 +58,7 @@ export function defaultSettings(deviceLanguageTag: string | null | undefined): A
     theme: 'system',
     spriteStyle: 'official',
     gameId: null,
+    checklistKind: 'national',
   };
 }
 
@@ -78,6 +88,7 @@ export function decodeSettings(
   const theme = raw[SETTING_KEY_OF.theme];
   const spriteStyle = raw[SETTING_KEY_OF.spriteStyle];
   const gameId = raw[SETTING_KEY_OF.gameId];
+  const checklistKind = raw[SETTING_KEY_OF.checklistKind];
   return {
     uiLang: isUiLanguagePreference(uiLang) ? uiLang : defaults.uiLang,
     gameLangs: isLangChain(gameLangs)
@@ -88,5 +99,9 @@ export function decodeSettings(
     theme: isThemePreference(theme) ? theme : defaults.theme,
     spriteStyle: isSpriteStyle(spriteStyle) ? spriteStyle : defaults.spriteStyle,
     gameId: typeof gameId === 'number' && Number.isInteger(gameId) ? gameId : defaults.gameId,
+    checklistKind:
+      checklistKind === 'national' || checklistKind === 'game'
+        ? checklistKind
+        : defaults.checklistKind,
   };
 }

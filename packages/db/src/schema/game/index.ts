@@ -24,7 +24,7 @@ export * from './text';
  * Version of the game-data schema. Bump whenever a table or column changes; it is written
  * to `meta.schema_version` and to `PRAGMA user_version`.
  */
-export const GAME_SCHEMA_VERSION = 3;
+export const GAME_SCHEMA_VERSION = 4;
 
 /** Every game-data table, in a stable order. */
 export const gameTables: readonly SQLiteTable[] = [

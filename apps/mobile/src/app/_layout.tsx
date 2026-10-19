@@ -72,6 +72,10 @@ function ThemedApp() {
                 name="game"
                 options={{ presentation: 'modal', title: t('nav.selectGame') }}
               />
+              <Stack.Screen
+                name="team-import"
+                options={{ presentation: 'modal', title: t('nav.importTeam') }}
+              />
             </Stack>
           </CatalogProvider>
         </MediaProvider>

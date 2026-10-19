@@ -90,9 +90,9 @@ describe('database integrity', () => {
   });
 
   it('records metadata and a deterministic data version', () => {
-    expect(report.dataVersion).toMatch(/^3-[0-9a-f]{12}$/);
+    expect(report.dataVersion).toMatch(/^4-[0-9a-f]{12}$/);
     expect(value(`SELECT value FROM meta WHERE key = 'data_version'`)).toBe(report.dataVersion);
-    expect(value('PRAGMA user_version')).toBe(3);
+    expect(value('PRAGMA user_version')).toBe(4);
     expect(dedupedReport.dataVersion).not.toBe(report.dataVersion);
   });
 

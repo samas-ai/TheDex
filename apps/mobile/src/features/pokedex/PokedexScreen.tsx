@@ -3,11 +3,12 @@ import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { listPokedex, searchQuery, type PokedexEntry } from '@thedex/db';
+import { checklistScope, listPokedex, searchQuery, type PokedexEntry } from '@thedex/db';
 import { SPACING } from '@thedex/ui-tokens';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
 import { useGame } from '../../shared/game/GameProvider';
 import { useAsync } from '../../shared/hooks/useAsync';
+import { useSettings } from '../../shared/settings/SettingsProvider';
 import { useTheme } from '../../shared/theme/ThemeProvider';
 import { Button, Chip, Loading, Message, ThemedText } from '../../shared/ui/primitives';
 import { SearchField } from '../../shared/ui/SearchField';
@@ -33,14 +34,16 @@ export function PokedexScreen() {
   const theme = useTheme();
   const { db } = useAppDatabase();
   const { ctx } = useGame();
+  const { settings } = useSettings();
+  const captureScope = checklistScope(settings.checklistKind, ctx.gameId);
   const [filters, setFilters] = useState<PokedexFilterState>(EMPTY_FILTERS);
   const [sort, setSort] = useState<PokedexSort>(DEFAULT_SORT);
   const [query, setQuery] = useState('');
   const [sheet, setSheet] = useState<'filters' | 'sort' | null>(null);
 
   const list = useAsync(
-    () => listPokedex(db, ctx, { filters: toRepoFilters(filters), sort }),
-    [db, ctx, filters, sort],
+    () => listPokedex(db, ctx, { filters: toRepoFilters(filters, captureScope), sort }),
+    [db, ctx, filters, sort, captureScope],
   );
   const search = useAsync(async () => {
     if (query.trim() === '') return null;

@@ -81,6 +81,8 @@ export const moves = sqliteTable(
     id: integer('id').primaryKey(),
     identifier: text('identifier').notNull(),
     psId: text('ps_id'),
+    /** Pokémon Showdown display name (e.g. `U-turn`), for team export (RF08.4). */
+    psName: text('ps_name'),
     generationId: integer('generation_id')
       .notNull()
       .references(() => generations.id),

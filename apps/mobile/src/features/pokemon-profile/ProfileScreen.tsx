@@ -11,6 +11,7 @@ import { useTheme } from '../../shared/theme/ThemeProvider';
 import { useTypeAccent } from '../../shared/theme/useTypeAccent';
 import { TabBar } from '../../shared/ui/TabBar';
 import { Button, Loading, Message } from '../../shared/ui/primitives';
+import { ProfileActions } from './ProfileActions';
 import { ProfileHeader } from './ProfileHeader';
 import { AboutTab } from './tabs/AboutTab';
 import { EvolutionTab } from './tabs/EvolutionTab';
@@ -40,6 +41,7 @@ export function ProfileScreen({ pokemonId }: { pokemonId: number }) {
     headerStyle: { backgroundColor: accent.tint },
     headerTintColor: accent.text,
     headerShadowVisible: false,
+    headerRight: () => <ProfileActions pokemonId={pokemonId} color={accent.text} />,
   };
 
   if (profile.error) {

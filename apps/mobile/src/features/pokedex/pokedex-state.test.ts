@@ -56,12 +56,12 @@ describe('pokedex state', () => {
     expect(toggle([1], 2)).toEqual([1, 2]);
   });
 
-  it('maps the capture filter to the national checklist scope', () => {
-    expect(toRepoFilters({ ...EMPTY_FILTERS, capture: 'shiny' }).capture).toEqual({
-      scope: 'national',
+  it('maps the capture filter to the checklist collection', () => {
+    expect(toRepoFilters({ ...EMPTY_FILTERS, capture: 'shiny' }, 'game:25').capture).toEqual({
+      scope: 'game:25',
       status: 'shiny',
     });
-    expect(toRepoFilters(EMPTY_FILTERS).capture).toBeNull();
+    expect(toRepoFilters(EMPTY_FILTERS, 'national').capture).toBeNull();
   });
 
   it('flips direction on the active key and starts stats descending', () => {

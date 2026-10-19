@@ -35,7 +35,10 @@ export function hitHref(hit: Pick<SearchHit, 'entityType' | 'entityId'>): Href {
   }
 }
 
-/** "More": global search over every encyclopedia (RNF07), the secondary Dexes and the app. */
+/**
+ * "More": global search over every encyclopedia (RNF07), the tools (teams, checklist,
+ * comparator, calculators), the secondary Dexes and the app.
+ */
 export function MoreScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -86,6 +89,40 @@ export function MoreScreen() {
         )
       ) : (
         <>
+          <Section title={t('more.tools')}>
+            <Card>
+              <LinkRow
+                title={t('nav.teams')}
+                subtitle={t('more.teamsHint')}
+                leading={entry('account-group')}
+                onPress={() => router.push('/teams')}
+              />
+              <LinkRow
+                title={t('nav.checklist')}
+                subtitle={t('more.checklistHint')}
+                leading={entry('checkbox-marked-circle-outline')}
+                onPress={() => router.push('/checklist')}
+              />
+              <LinkRow
+                title={t('nav.compare')}
+                subtitle={t('more.compareHint')}
+                leading={entry('scale-balance')}
+                onPress={() => router.push('/compare')}
+              />
+              <LinkRow
+                title={t('nav.statCalc')}
+                subtitle={t('more.statCalcHint')}
+                leading={entry('calculator-variant')}
+                onPress={() => router.push('/calc/stats')}
+              />
+              <LinkRow
+                title={t('nav.catchCalc')}
+                subtitle={t('more.catchCalcHint')}
+                leading={entry('pokeball')}
+                onPress={() => router.push('/calc/catch')}
+              />
+            </Card>
+          </Section>
           <Section title={t('more.encyclopedias')}>
             <Card>
               <LinkRow

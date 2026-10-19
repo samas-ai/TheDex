@@ -7,9 +7,6 @@ import type {
   SortDirection,
 } from '@thedex/db';
 
-/** Checklist scope used by the capture filter until per-game checklists arrive (RF09). */
-export const CAPTURE_SCOPE = 'national';
-
 /** Filter state of the Pokédex screen (RF01.3). */
 export interface PokedexFilterState {
   readonly typeIds: readonly number[];
@@ -60,8 +57,11 @@ export function toggleType(typeIds: readonly number[], id: number): number[] {
   return toggleTypePair(typeIds, id);
 }
 
-/** Repository query for the UI state. */
-export function toRepoFilters(filters: PokedexFilterState): PokedexFilters {
+/**
+ * Repository query for the UI state. `captureScope` is the checklist collection the capture
+ * filter reads (`checklistScope` of the user's checklist setting, RF09).
+ */
+export function toRepoFilters(filters: PokedexFilterState, captureScope: string): PokedexFilters {
   return {
     typeIds: filters.typeIds,
     generationIds: filters.generationIds,
@@ -69,7 +69,7 @@ export function toRepoFilters(filters: PokedexFilterState): PokedexFilters {
     tags: filters.tags,
     abilityId: filters.abilityId,
     eggGroupId: filters.eggGroupId,
-    capture: filters.capture ? { scope: CAPTURE_SCOPE, status: filters.capture } : null,
+    capture: filters.capture ? { scope: captureScope, status: filters.capture } : null,
     includeForms: filters.includeForms,
   };
 }

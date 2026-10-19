@@ -59,20 +59,27 @@ class PsIndex {
   private readonly byPsId = new Map<string, number>();
   readonly unmapped: string[] = [];
 
+  /** `psName` gives the Showdown display name stored in `ps_name` (tables that have it). */
   constructor(
     private readonly table: string,
     private readonly kind: string,
     private readonly ctx: BuildContext,
+    private readonly psName?: (psId: string) => string,
   ) {}
 
-  /** Resolves and stores ps_id for each row; `candidates` lists PS IDs to try in order. */
+  /** Resolves and stores ps_id (and ps_name) for each row; `candidates` lists PS IDs to try in order. */
   map<R extends Row>(
     rows: readonly R[],
     exists: (psId: string) => boolean,
     candidates: (row: R) => string[],
   ) {
     const overrides = this.ctx.curated.psIdOverrides[this.kind] ?? {};
-    const update = this.ctx.db.prepare(`UPDATE "${this.table}" SET ps_id = ? WHERE id = ?`);
+    const name = this.psName;
+    const update = this.ctx.db.prepare(
+      name
+        ? `UPDATE "${this.table}" SET ps_id = ?, ps_name = ? WHERE id = ?`
+        : `UPDATE "${this.table}" SET ps_id = ? WHERE id = ?`,
+    );
     this.ctx.db.transaction(() => {
       for (const row of rows) {
         const override = overrides[row.identifier];
@@ -84,7 +91,8 @@ class PsIndex {
           this.unmapped.push(row.identifier);
           continue;
         }
-        update.run(psId, row.id);
+        if (name) update.run(psId, name(psId), row.id);
+        else update.run(psId, row.id);
         if (!this.byPsId.has(psId)) this.byPsId.set(psId, row.id);
       }
     })();
@@ -105,7 +113,8 @@ function mapPokemon(ctx: BuildContext): PsIndex {
     `SELECT p.id, p.identifier, p.is_default, s.identifier AS species
      FROM pokemon p JOIN pokemon_species s ON s.id = p.species_id`,
   );
-  return new PsIndex('pokemon', 'pokemon', ctx).map(rows, speciesExists, (row) => [
+  const name = (psId: string) => Dex.species.get(psId).name;
+  return new PsIndex('pokemon', 'pokemon', ctx, name).map(rows, speciesExists, (row) => [
     toPsId(row.identifier),
     row.is_default === 1 ? toPsId(row.species) : '',
   ]);
@@ -135,7 +144,7 @@ function variantKind(move: Move): 'z' | 'max' | 'gmax' | null {
 
 function mapMoves(ctx: BuildContext): PsIndex {
   const rows = ctx.all<Row>('SELECT id, identifier FROM moves');
-  const index = new PsIndex('moves', 'move', ctx).map(
+  const index = new PsIndex('moves', 'move', ctx, (psId) => Dex.moves.get(psId).name).map(
     rows,
     (psId) => Dex.moves.get(psId).exists,
     moveCandidates,
@@ -190,7 +199,7 @@ function mapItems(ctx: BuildContext): PsIndex {
   const rows = ctx.all<Row>(
     `SELECT id, identifier FROM items ORDER BY identifier LIKE '%--bag', id`,
   );
-  return new PsIndex('items', 'item', ctx).map(
+  return new PsIndex('items', 'item', ctx, (psId) => Dex.items.get(psId).name).map(
     rows,
     (id) => Dex.items.get(id).exists,
     (row) => [toPsId(row.identifier.replace(/--(held|bag)$/, ''))],
@@ -202,9 +211,10 @@ function mapSimple(
   table: string,
   kind: string,
   exists: (id: string) => boolean,
+  psName?: (id: string) => string,
 ) {
   const rows = ctx.all<Row>(`SELECT id, identifier FROM "${table}"`);
-  return new PsIndex(table, kind, ctx).map(rows, exists, (row) => [toPsId(row.identifier)]);
+  return new PsIndex(table, kind, ctx, psName).map(rows, exists, (row) => [toPsId(row.identifier)]);
 }
 
 function deriveMoveVariants(
@@ -339,7 +349,13 @@ export function derivePkmn(ctx: BuildContext): void {
   const pokemon = mapPokemon(ctx);
   const forms = mapForms(ctx);
   const moves = mapMoves(ctx);
-  const abilities = mapSimple(ctx, 'abilities', 'ability', (id) => Dex.abilities.get(id).exists);
+  const abilities = mapSimple(
+    ctx,
+    'abilities',
+    'ability',
+    (id) => Dex.abilities.get(id).exists,
+    (id) => Dex.abilities.get(id).name,
+  );
   const items = mapItems(ctx);
   const natures = mapSimple(ctx, 'natures', 'nature', (id) => Dex.natures.get(id).exists);
 

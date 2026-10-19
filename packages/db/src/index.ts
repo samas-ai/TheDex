@@ -11,6 +11,17 @@ export {
   type AbilityListEntry,
 } from './repos/abilities';
 export {
+  checklistScope,
+  getChecklistEntries,
+  getChecklistFlags,
+  listChecklistDex,
+  setChecklistEntries,
+  type ChecklistDexEntry,
+  type ChecklistEntry,
+  type ChecklistFlags,
+  type ChecklistKind,
+} from './repos/checklist';
+export {
   listAbilities,
   listDamageClasses,
   listEggGroups,
@@ -63,6 +74,7 @@ export {
   type MachineMove,
 } from './repos/items';
 export {
+  getLearnableMoveIds,
   getPokemonMoves,
   machineLabel,
   type LearnsetMove,
@@ -163,6 +175,33 @@ export {
 } from './repos/profile';
 export { readSettings, SETTING_KEYS, writeSetting, type SettingKey } from './repos/settings';
 export {
+  getEntityNames,
+  getMoveSummaries,
+  getShowdownNames,
+  natureFromShowdown,
+  resolveShowdownNames,
+  type MoveSummary,
+  type NamedKind,
+  type ShowdownIdMaps,
+  type ShowdownNameMaps,
+  type ShowdownNameQuery,
+} from './repos/team-data';
+export {
+  decodeTeamMembers,
+  deleteTeam,
+  getTeam,
+  listTeams,
+  MOVE_SLOTS,
+  newTeamMember,
+  nextTeamSortOrder,
+  saveTeam,
+  TEAM_SIZE,
+  teamMemberSchema,
+  type Team,
+  type TeamMember,
+  type TeamMemberInput,
+} from './repos/teams';
+export {
   containsCjk,
   normalizeSearchText,
   prefixUpperBound,
@@ -176,3 +215,4 @@ export {
 export { ALIAS_LANG, SEARCH_ENTITY_TYPES, type SearchEntityType } from './schema/game/search';
 export { langRank, pickI18n, sqlList } from './sql';
 export { CJK_LANGS, type AnySQLiteDatabase, type GameContext } from './types';
+export { createUlid } from './ulid';

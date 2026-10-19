@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { calcStat, evLimits, hpDv, maxIv, statBounds, statExpBonus } from './stats';
+import {
+  calcStat,
+  evLimits,
+  hpDv,
+  maxIv,
+  possibleIvs,
+  showdownEvLimits,
+  statBounds,
+  statExpBonus,
+  statExpFromEv,
+} from './stats';
 
 describe('Gen 1–2 stats (DV + Stat Experience)', () => {
   // Reference: max Lv. 100 Mewtwo in RBY is the famous 415/318/278/406/358 spread.
@@ -142,5 +152,45 @@ describe('statBounds (RF02.4)', () => {
       maxNeutral: 406,
       max: 406,
     });
+  });
+});
+
+describe('possibleIvs (RF11.1 reverse)', () => {
+  // Bulbapedia's Lv. 78 Adamant Garchomp: HP 289 (IV 24, EV 74), Atk 278 (IV 12, EV 190),
+  // Spe 171 (IV 5, EV 23).
+  const garchomp = { gen: 9, level: 78 } as const;
+
+  it('finds every IV that yields the observed stat', () => {
+    expect(possibleIvs({ ...garchomp, stat: 'hp', base: 108, ev: 74, value: 289 })).toEqual([24]);
+    expect(
+      possibleIvs({ ...garchomp, stat: 'attack', base: 130, ev: 190, nature: 1.1, value: 278 }),
+    ).toEqual([11, 12]);
+    expect(possibleIvs({ ...garchomp, stat: 'speed', base: 102, ev: 23, value: 171 })).toEqual([
+      4, 5,
+    ]);
+  });
+
+  it('works with DVs in Gen 1–2 and returns nothing for impossible values', () => {
+    expect(
+      possibleIvs({ gen: 1, stat: 'hp', base: 106, level: 100, ev: 65535, value: 415 }),
+    ).toEqual([15]);
+    expect(possibleIvs({ ...garchomp, stat: 'hp', base: 108, ev: 74, value: 400 })).toEqual([]);
+  });
+});
+
+describe('Showdown EV scale', () => {
+  it('maps EVs to Gen 1–2 Stat Experience with the same ⌊EV / 4⌋ bonus', () => {
+    expect(statExpFromEv(0)).toBe(0);
+    expect(statExpFromEv(252)).toBe(63504);
+    for (const ev of [0, 3, 4, 101, 252, 255]) {
+      expect(statExpBonus(statExpFromEv(ev))).toBe(Math.floor(ev / 4));
+    }
+    expect(() => statExpFromEv(256)).toThrow(RangeError);
+  });
+
+  it('caps EVs per generation', () => {
+    expect(showdownEvLimits(1)).toEqual({ perStat: 252, total: null });
+    expect(showdownEvLimits(4)).toEqual({ perStat: 255, total: 510 });
+    expect(showdownEvLimits(9)).toEqual({ perStat: 252, total: 510 });
   });
 });

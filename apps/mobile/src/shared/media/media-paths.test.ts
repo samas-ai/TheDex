@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { cryStyleFor, cryVariantFor, formatBytes, localMediaPath, runPool } from './media-paths';
+import {
+  cryStyleFor,
+  cryVariantFor,
+  formatBytes,
+  isCompleteDownload,
+  localMediaPath,
+  runPool,
+} from './media-paths';
 
 describe('media helpers', () => {
   it('places assets under style/variant', () => {
@@ -58,5 +65,16 @@ describe('media helpers', () => {
       signal,
     );
     expect(seen).toEqual([1, 2]);
+  });
+});
+
+describe('isCompleteDownload', () => {
+  it('checks the size against the listing, or that the file is not empty', () => {
+    expect(isCompleteDownload(1059, 1059)).toBe(true);
+    expect(isCompleteDownload(512, 1059)).toBe(false);
+    expect(isCompleteDownload(0, 1059)).toBe(false);
+    expect(isCompleteDownload(10, null)).toBe(true);
+    expect(isCompleteDownload(0, null)).toBe(false);
+    expect(isCompleteDownload(10, 0)).toBe(true);
   });
 });

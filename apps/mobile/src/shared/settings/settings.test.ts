@@ -9,6 +9,7 @@ describe('settings', () => {
       theme: 'system',
       spriteStyle: 'official',
       gameId: null,
+      checklistKind: 'national',
     });
     expect(defaultSettings('ja-JP').gameLangs).toEqual(['en']);
     expect(defaultSettings(null).gameLangs).toEqual(['en']);
@@ -30,6 +31,7 @@ describe('settings', () => {
           theme: 'amoled',
           sprite_style: 'home',
           game_id: 7,
+          checklist_kind: 'game',
         },
         'en-US',
       ),
@@ -39,10 +41,18 @@ describe('settings', () => {
       theme: 'amoled',
       spriteStyle: 'home',
       gameId: 7,
+      checklistKind: 'game',
     });
     expect(
       decodeSettings(
-        { ui_lang: 'fr', game_langs: [], theme: 'sepia', sprite_style: 'ascii', game_id: '7' },
+        {
+          ui_lang: 'fr',
+          game_langs: [],
+          theme: 'sepia',
+          sprite_style: 'ascii',
+          game_id: '7',
+          checklist_kind: 'box',
+        },
         'en-US',
       ),
     ).toEqual(defaultSettings('en-US'));

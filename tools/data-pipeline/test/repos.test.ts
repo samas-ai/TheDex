@@ -5,7 +5,24 @@ import type Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  checklistScope,
+  decodeTeamMembers,
   deleteMediaCacheEntries,
+  deleteTeam,
+  getChecklistEntries,
+  getChecklistFlags,
+  getEntityNames,
+  getMoveSummaries,
+  getShowdownNames,
+  getTeam,
+  listChecklistDex,
+  listTeams,
+  natureFromShowdown,
+  newTeamMember,
+  nextTeamSortOrder,
+  resolveShowdownNames,
+  saveTeam,
+  setChecklistEntries,
   getAbilityDetail,
   getAbilityHolders,
   getEvolutionChain,
@@ -13,6 +30,7 @@ import {
   getGameFeatures,
   getItemDetail,
   getItemIcon,
+  getLearnableMoveIds,
   getLocation,
   getLocationEncounters,
   getMediaCacheEntry,
@@ -321,6 +339,22 @@ describe('moveset (RF02.6)', () => {
       ['machine', 'thunderbolt', 0],
     ]);
     expect(scarlet.inheritedFromPokemonId).toBeNull();
+  });
+
+  it('adds the base variety and pre-evolutions to the legal moves (RF08.2)', async () => {
+    // Bite learned by Charmander only (level 5) in Scarlet/Violet.
+    app.exec(`INSERT INTO data.pokemon_moves (pokemon_id, version_group_id, method_id, move_id, level)
+      VALUES (4, 25, 1, 44, 5)`);
+    try {
+      expect([...(await getLearnableMoveIds(db, 6, sv))].sort()).toEqual([44, 53]);
+      expect([...(await getLearnableMoveIds(db, 10034, sv))].sort()).toEqual([44, 53]);
+      expect([...(await getLearnableMoveIds(db, 25, sv))].sort((a, b) => a - b)).toEqual([
+        1, 44, 85,
+      ]);
+      expect([...(await getLearnableMoveIds(db, 6, rb))]).toEqual([]);
+    } finally {
+      app.exec('DELETE FROM data.pokemon_moves WHERE pokemon_id = 4 AND move_id = 44');
+    }
   });
 
   it('falls back to the base variety for forms without a learnset', async () => {
@@ -731,5 +765,250 @@ describe('Nature Dex (RF07.2)', () => {
         gameIndex: 3,
       },
     ]);
+  });
+});
+
+describe('teams (RF08)', () => {
+  const member = newTeamMember(25);
+
+  it('creates slots with the Showdown defaults', () => {
+    expect(member).toEqual({
+      pokemonId: 25,
+      nickname: '',
+      level: 100,
+      gender: '',
+      shiny: false,
+      abilityId: null,
+      nature: null,
+      itemId: null,
+      teraType: null,
+      moveIds: [],
+      evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+      ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+      happiness: 255,
+      hpType: null,
+      gigantamax: false,
+      dynamaxLevel: 10,
+    });
+  });
+
+  it('decodes stored members, dropping invalid ones', () => {
+    expect(decodeTeamMembers('not json')).toEqual([]);
+    expect(decodeTeamMembers('{"pokemonId":25}')).toEqual([]);
+    const json = JSON.stringify([
+      { pokemonId: 6, nature: 'adamant', teraType: 'stellar', moveIds: [53, null] },
+      { pokemonId: 25, nature: 'grumpy' },
+      { pokemonId: 4, evs: { hp: 300, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 } },
+      { pokemonId: 1, extra: 'ignored' },
+    ]);
+    const decoded = decodeTeamMembers(json);
+    expect(decoded.map((m) => m.pokemonId)).toEqual([6, 1]);
+    expect(decoded[0]).toMatchObject({
+      nature: 'adamant',
+      teraType: 'stellar',
+      moveIds: [53, null],
+    });
+    expect(decoded[1]).not.toHaveProperty('extra');
+    const seven = JSON.stringify(Array.from({ length: 7 }, (_, i) => ({ pokemonId: i + 1 })));
+    expect(decodeTeamMembers(seven)).toHaveLength(6);
+  });
+
+  it('saves, lists, updates and tombstones teams', async () => {
+    expect(await nextTeamSortOrder(db)).toBe(0);
+    const base = {
+      format: 'gen9ou',
+      gameId: sv.gameId,
+      generationId: 9,
+      notes: null,
+      createdAt: 1000,
+    };
+    await saveTeam(db, { ...base, id: 'B', name: 'Rain', members: [member], sortOrder: 0 }, 2000);
+    await saveTeam(db, { ...base, id: 'A', name: 'Sun', members: [], sortOrder: 1 }, 2000);
+    expect(await nextTeamSortOrder(db)).toBe(2);
+    expect((await listTeams(db)).map((team) => team.name)).toEqual(['Rain', 'Sun']);
+
+    await saveTeam(
+      db,
+      { ...base, id: 'A', name: 'Sun 2', members: [member, member], sortOrder: 1 },
+      3000,
+    );
+    expect(await getTeam(db, 'A')).toMatchObject({
+      name: 'Sun 2',
+      updatedAt: 3000,
+      members: [member, member],
+    });
+
+    await deleteTeam(db, 'A', 4000);
+    expect(await getTeam(db, 'A')).toBeNull();
+    expect((await listTeams(db)).map((team) => team.id)).toEqual(['B']);
+    expect(app.prepare(`SELECT deleted_at, updated_at FROM teams WHERE id = 'A'`).get()).toEqual({
+      deleted_at: 4000,
+      updated_at: 4000,
+    });
+    // Saving the id again brings it back.
+    await saveTeam(db, { ...base, id: 'A', name: 'Sun 3', members: [], sortOrder: 1 }, 5000);
+    expect((await getTeam(db, 'A'))?.name).toBe('Sun 3');
+
+    const seven = Array.from({ length: 7 }, () => member);
+    await expect(
+      saveTeam(db, { ...base, id: 'C', name: 'Too big', members: seven, sortOrder: 2 }, 1),
+    ).rejects.toThrow(RangeError);
+    await expect(
+      saveTeam(
+        db,
+        { ...base, id: 'C', name: 'Bad', members: [{ ...member, level: 0 }], sortOrder: 2 },
+        1,
+      ),
+    ).rejects.toThrow();
+  });
+});
+
+describe('checklist (RF09)', () => {
+  it('names collection scopes', () => {
+    expect(checklistScope('national', 7)).toBe('national');
+    expect(checklistScope('game', 7)).toBe('game:7');
+  });
+
+  it('lists every species for the National Dex and the regional dexes for a game', async () => {
+    const national = await listChecklistDex(db, rb, 'national');
+    expect(national.map((entry) => entry.number)).toEqual([1, 4, 5, 6, 25, 35, 81, 390, 737, 935]);
+    expect(national.find((entry) => entry.speciesId === 81)).toMatchObject({
+      pokemonId: 81,
+      name: 'Magnemite',
+      generationId: 1,
+      types: ['electric'],
+    });
+    // Later species keep their own typing in an older game's context.
+    expect(national.find((entry) => entry.speciesId === 390)).toMatchObject({
+      generationId: 4,
+      types: ['fire'],
+    });
+    const game = await listChecklistDex(db, sv, 'game');
+    expect(game.map((entry) => [entry.name, entry.number])).toEqual([
+      ['Charcadet', 26],
+      ['Pikachu', 74],
+      ['Charmander', 150],
+      ['Charizard', 151],
+    ]);
+  });
+
+  it('upserts entries in batches and reads them back', async () => {
+    const scope = checklistScope('game', sv.gameId);
+    const many = Array.from({ length: 450 }, (_, i) => ({
+      pokemonId: 20000 + i,
+      seen: true,
+      caught: i % 2 === 0,
+      shinyCaught: false,
+    }));
+    await setChecklistEntries(db, scope, many, 10);
+    await setChecklistEntries(
+      db,
+      scope,
+      [
+        { pokemonId: 25, seen: true, caught: true, shinyCaught: true },
+        { pokemonId: 20000, seen: false, caught: false, shinyCaught: false },
+        { pokemonId: 25, formId: 5, seen: true, caught: false, shinyCaught: false },
+      ],
+      20,
+    );
+    const entries = await getChecklistEntries(db, scope);
+    expect(entries).toHaveLength(452);
+    expect(entries.find((e) => e.pokemonId === 25 && e.formId === 0)).toEqual({
+      pokemonId: 25,
+      formId: 0,
+      seen: true,
+      caught: true,
+      shinyCaught: true,
+    });
+    expect(entries.find((e) => e.pokemonId === 20000)).toMatchObject({
+      seen: false,
+      caught: false,
+    });
+    const flags = await getChecklistFlags(db, scope, [25, 4, 20001]);
+    expect([...flags.keys()].sort()).toEqual([20001, 25]);
+    expect(flags.get(20001)).toEqual({ seen: true, caught: false, shinyCaught: false });
+    expect(await getChecklistFlags(db, scope, [])).toEqual(new Map());
+    // The Pokédex capture filter reads the same scope.
+    expect(
+      (await listPokedex(db, sv, { filters: { capture: { scope, status: 'shiny' } } })).map(
+        (entry) => entry.name,
+      ),
+    ).toEqual(['Pikachu']);
+  });
+});
+
+describe('team data and Showdown names (RF08.2, RF08.4)', () => {
+  it('summarizes moves as of the game', async () => {
+    const moves = await getMoveSummaries(db, sv, [85, 44, 85]);
+    expect(moves.get(85)).toMatchObject({
+      name: 'Thunderbolt',
+      type: 'electric',
+      damageClass: 'special',
+    });
+    expect(moves.get(44)).toMatchObject({ type: 'dark', damageClass: 'physical', power: 60 });
+    expect((await getMoveSummaries(db, rb, [44])).get(44)).toMatchObject({ type: 'normal' });
+    expect(await getMoveSummaries(db, sv, [])).toEqual(new Map());
+  });
+
+  it('names entities by id in the game languages', async () => {
+    const names = async (kind: Parameters<typeof getEntityNames>[2], ids: number[]) =>
+      Object.fromEntries(await getEntityNames(db, ['pt-BR', 'en'], kind, ids));
+    expect(await names('pokemon', [10034, 25, 99999])).toEqual({
+      10034: 'Mega Charizard X',
+      25: 'Pikachu',
+    });
+    expect(await names('item', [17])).toEqual({ 17: 'Potion' });
+    expect(await names('ability', [65, 66])).toEqual({ 65: 'Overgrow', 66: 'blaze' });
+    expect(await names('move', [85])).toEqual({ 85: 'Thunderbolt' });
+    expect(await names('move', [])).toEqual({});
+  });
+
+  it('resolves Showdown names to ids, cosmetic forms included', async () => {
+    app.exec(`INSERT INTO data.pokemon_forms (id, identifier, ps_id, pokemon_id, form_identifier,
+      form_kind, introduced_in_version_group_id, is_default, is_battle_only, is_mega, form_order,
+      sort_order) VALUES (99999, 'pikachu-test', 'pikachutest', 25, 'test', 'cosmetic', 25, 0, 0, 0, 9, 9)`);
+    try {
+      const ids = await resolveShowdownNames(db, {
+        species: ['Charizard-Mega-X', 'pikachu', 'Pikachu-Test', 'Missingno', ''],
+        // Potion has no Showdown ID: it resolves through its identifier.
+        items: ['Potion', 'Oran Berry', 'Leftovers'],
+        abilities: ['Overgrow'],
+        moves: ['Thunderbolt', 'Flamethrower'],
+      });
+      expect(Object.fromEntries(ids.pokemon)).toEqual({
+        charizardmegax: 10034,
+        pikachu: 25,
+        pikachutest: 25,
+      });
+      expect(Object.fromEntries(ids.items)).toEqual({ potion: 17, oranberry: 132 });
+      expect(Object.fromEntries(ids.abilities)).toEqual({ overgrow: 65 });
+      expect(Object.fromEntries(ids.moves)).toEqual({ thunderbolt: 85, flamethrower: 53 });
+      expect((await resolveShowdownNames(db, {})).pokemon.size).toBe(0);
+    } finally {
+      app.exec('DELETE FROM data.pokemon_forms WHERE id = 99999');
+    }
+  });
+
+  it('gives Showdown display names for export', async () => {
+    const names = await getShowdownNames(db, {
+      pokemon: [10034, 25],
+      items: [17, 328],
+      abilities: [65],
+      moves: [85],
+    });
+    expect(Object.fromEntries(names.pokemon)).toEqual({
+      10034: 'Charizard-Mega-X',
+      25: 'Pikachu',
+    });
+    // TMs are not Showdown items: the English name stands in.
+    expect(Object.fromEntries(names.items)).toEqual({ 17: 'Potion', 328: 'TM24' });
+    expect(Object.fromEntries(names.abilities)).toEqual({ 65: 'Overgrow' });
+    expect(Object.fromEntries(names.moves)).toEqual({ 85: 'Thunderbolt' });
+    expect((await getShowdownNames(db, {})).moves.size).toBe(0);
+  });
+
+  it('maps Showdown nature names', () => {
+    expect(natureFromShowdown('Adamant')).toBe('adamant');
+    expect(natureFromShowdown('Grumpy')).toBeNull();
   });
 });

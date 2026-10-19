@@ -53,6 +53,8 @@ export const items = sqliteTable(
     id: integer('id').primaryKey(),
     identifier: text('identifier').notNull(),
     psId: text('ps_id'),
+    /** Pokémon Showdown display name (e.g. `King's Rock`), for team export (RF08.4). */
+    psName: text('ps_name'),
     categoryId: integer('category_id')
       .notNull()
       .references(() => itemCategories.id),

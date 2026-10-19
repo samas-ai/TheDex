@@ -6,6 +6,8 @@ export const abilities = sqliteTable('abilities', {
   id: integer('id').primaryKey(),
   identifier: text('identifier').notNull(),
   psId: text('ps_id'),
+  /** Pokémon Showdown display name (e.g. `Rough Skin`), for team export (RF08.4). */
+  psName: text('ps_name'),
   generationId: integer('generation_id')
     .notNull()
     .references(() => generations.id),

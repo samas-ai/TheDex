@@ -1,7 +1,7 @@
 /**
  * RNF07 benchmark: ~1000 search queries (1–12 chars, several languages incl. CJK), the
- * Pokédex list (RF01) with every sort and filter, and the Phase 3 encyclopedia lists and
- * details, against the real thedex-data.db. Fails when a p95 is ≥ 100 ms or the "char"
+ * Pokédex list (RF01) with every sort and filter, the Phase 3 encyclopedia lists and details
+ * and the Phase 4 tools (checklist, team builder lookups), against the real thedex-data.db. Fails when a p95 is ≥ 100 ms or the "char"
  * ordering regresses.
  */
 import path from 'node:path';
@@ -9,11 +9,16 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import {
   getAbilityHolders,
+  getChecklistEntries,
   getItemDetail,
   getLocationEncounters,
   getMoveDetail,
   getMoveLearners,
+  getMoveSummaries,
+  getPokemonMoves,
+  getShowdownNames,
   listAbilityDex,
+  listChecklistDex,
   listItems,
   listLocationRegions,
   listLocations,
@@ -22,6 +27,7 @@ import {
   MOVE_SORT_KEYS,
   POKEDEX_SORT_KEYS,
   resolveGameContext,
+  resolveShowdownNames,
   searchQuery,
   type PokedexFilters,
 } from '@thedex/db';
@@ -174,7 +180,7 @@ console.log(
     `p95 ${fmt(listP95)} · max ${fmt(Math.max(...listTimings))}`,
 );
 
-// --- Encyclopedias (Phase 3): Move, Ability, Item and Location Dex lists and details -------
+// --- Encyclopedias (Phase 3) and tools (Phase 4): lists, details and lookups ---------------
 const dexTimings: number[] = [];
 const timed = async (fn: () => Promise<unknown>) => {
   const started = performance.now();
@@ -206,11 +212,28 @@ for (const game of ['red-blue', 'heartgold-soulsilver', 'sword-shield', 'scarlet
   await timed(() => getAbilityHolders(appDb, 26, ctx));
   await timed(() => getItemDetail(appDb, 211, ctx));
   await timed(() => getLocationEncounters(appDb, 80, ctx));
+  // Phase 4 tools: checklist (RF09) and team builder lookups (RF08).
+  await timed(() => listChecklistDex(appDb, ctx, 'national'));
+  await timed(() => listChecklistDex(appDb, ctx, 'game'));
+  await timed(() => getChecklistEntries(appDb, 'national'));
+  await timed(() => getPokemonMoves(appDb, 445, ctx));
+  await timed(() => getMoveSummaries(appDb, ctx, [85, 89, 53, 58]));
+  await timed(() =>
+    resolveShowdownNames(appDb, {
+      species: ['Garchomp', 'Rotom-Wash', 'Vivillon-Pokeball'],
+      items: ['Leftovers', 'Choice Scarf'],
+      abilities: ['Rough Skin'],
+      moves: ['Earthquake', 'U-turn', 'Hidden Power'],
+    }),
+  );
+  await timed(() =>
+    getShowdownNames(appDb, { pokemon: [445], items: [211], abilities: [24], moves: [89, 369] }),
+  );
 }
 app.close();
 const dexP95 = percentile(dexTimings, 95);
 console.log(
-  `Encyclopedias — ${dexTimings.length} queries: p50 ${fmt(percentile(dexTimings, 50))} · ` +
+  `Encyclopedias and tools — ${dexTimings.length} queries: p50 ${fmt(percentile(dexTimings, 50))} · ` +
     `p95 ${fmt(dexP95)} · max ${fmt(Math.max(...dexTimings))}`,
 );
 

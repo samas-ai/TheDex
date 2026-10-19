@@ -2,7 +2,14 @@ import { sql } from 'drizzle-orm';
 import type { AnySQLiteDatabase } from '../types';
 
 /** Keys stored in thedex-user.db `settings` (values are JSON). */
-export const SETTING_KEYS = ['ui_lang', 'game_langs', 'theme', 'sprite_style', 'game_id'] as const;
+export const SETTING_KEYS = [
+  'ui_lang',
+  'game_langs',
+  'theme',
+  'sprite_style',
+  'game_id',
+  'checklist_kind',
+] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 
 /**

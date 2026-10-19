@@ -126,6 +126,8 @@ export const pokemon = sqliteTable(
     identifier: text('identifier').notNull(),
     /** Pokémon Showdown ID (e.g. `charizardmegax`), null when unmapped. */
     psId: text('ps_id'),
+    /** Pokémon Showdown display name (e.g. `Charizard-Mega-X`), for team export (RF08.4). */
+    psName: text('ps_name'),
     speciesId: integer('species_id')
       .notNull()
       .references(() => pokemonSpecies.id),

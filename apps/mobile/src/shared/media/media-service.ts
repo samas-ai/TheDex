@@ -25,7 +25,13 @@ import {
   type MediaPackSize,
   type MediaSource,
 } from '@thedex/db';
-import { cryStyleFor, cryVariantFor, localMediaPath, runPool } from './media-paths';
+import {
+  cryStyleFor,
+  cryVariantFor,
+  isCompleteDownload,
+  localMediaPath,
+  runPool,
+} from './media-paths';
 
 const RETRY_AFTER_MS = 30_000;
 
@@ -152,7 +158,9 @@ export class MediaService {
 
   private async load(asset: MediaFile, key: string): Promise<string | null> {
     const cached = await getMediaCacheEntry(this.db, key);
-    if (cached && new File(cached.localUri).exists) {
+    const local = cached ? new File(cached.localUri) : null;
+    // A truncated file is downloaded again instead of being served forever.
+    if (cached && local?.exists && isCompleteDownload(local.size, asset.bytes)) {
       this.memory.set(key, cached.localUri);
       void touchMediaCacheEntry(this.db, key, Date.now());
       return cached.localUri;
@@ -173,6 +181,10 @@ export class MediaService {
       const file = await File.downloadFileAsync(url, new File(directory, name), {
         idempotent: true,
       });
+      if (!isCompleteDownload(file.size, asset.bytes)) {
+        file.delete();
+        throw new Error(`Incomplete download: ${url}`);
+      }
       const now = Date.now();
       await putMediaCacheEntry(this.db, {
         key,

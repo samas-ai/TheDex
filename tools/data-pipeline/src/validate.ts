@@ -249,6 +249,16 @@ export async function validateDatabase(options: ValidateOptions): Promise<Valida
         'charizard',
       ],
       [
+        'Mega Charizard X Showdown name',
+        scalar<string>(db, `SELECT ps_name FROM pokemon WHERE identifier = 'charizard-mega-x'`),
+        'Charizard-Mega-X',
+      ],
+      [
+        'U-turn Showdown name',
+        scalar<string>(db, `SELECT ps_name FROM moves WHERE identifier = 'u-turn'`),
+        'U-turn',
+      ],
+      [
         'Flamethrower Max Move power 130',
         scalar(db, `SELECT max_power FROM moves WHERE identifier = 'flamethrower'`),
         130,

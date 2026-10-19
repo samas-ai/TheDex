@@ -9,10 +9,12 @@ TheDex é uma Pokédex **100% offline**, multi-geração, com multilíngue dual 
 | 1    | Monorepo, schema SQLite, pipeline de dados, busca FTS5                 | concluída\* |
 | 2    | Temas e paleta por tipo, seletor de jogo, RF01–RF02, cache de mídia    | concluída\* |
 | 3    | RF03–RF07 (Move, Ability, Item, Location, Type e Nature Dex)           | concluída\* |
-| 4    | RF08–RF11 (Team Builder/Showdown, Checklist, Comparador, Calculadoras) | —           |
+| 4    | RF08–RF11 (Team Builder/Showdown, Checklist, Comparador, Calculadoras) | concluída†  |
 | 5    | Backup/restore e feature flags PRO                                     | —           |
 
 \* As telas das Fases 2 e 3 rodaram num emulador Android 35 (Expo Go, dados reais), mas falta validar num aparelho real (APK de release em modo avião) e num iPhone. Os bundles Android e iOS compilam (`npx expo export --platform android|ios`).
+
+† As telas da Fase 4 rodaram no emulador Android 35 (Expo Go, FireRed/LeafGreen): importação/exportação do Showdown, slot, cobertura, card em PNG com a folha de compartilhamento, checklist, comparador e calculadoras. Valem as mesmas pendências: aparelho real e iPhone.
 
 ---
 
@@ -46,7 +48,7 @@ O `better-sqlite3` ≥ 13 já traz binários prontos. Ele fica em `ignoredBuiltD
 
 ```
 apps/mobile/            @thedex/mobile        Expo SDK 58 + Expo Router (rotas em src/app/)
-packages/engine/        @thedex/engine        mecânicas puras (TS, zero deps, zero I/O)
+packages/engine/        @thedex/engine        mecânicas puras (TS, zero deps, zero I/O): stats, tipos, Showdown, cobertura, captura
 packages/db/            @thedex/db            schema Drizzle (game + user), DDL, repositórios, busca
 packages/ui-tokens/     @thedex/ui-tokens     só tokens: paleta dos 18 tipos, temas, espaçamentos
 tools/data-pipeline/    @thedex/data-pipeline CSV PokeAPI + @pkmn/dex + curados → thedex-data.db
@@ -55,7 +57,7 @@ data/curated/           JSONs curados versionados (jogos, tags, pt-BR, aliases, 
 data/generated/         listagens geradas e versionadas (media-packs/cries-aac.json)
 ```
 
-**Dependências permitidas:** `engine` ← `db` ← `mobile` e `ui-tokens` ← `mobile`. O `data-pipeline` depende de `db` e `engine`, e o `media-pack` depende do `data-pipeline` (config e formato da listagem). O engine e o `ui-tokens` não importam nada do monorepo (o `ui-tokens` repete a lista dos 18 tipos para continuar sem dependências), e a UI nunca importa `better-sqlite3` nem o pipeline.
+**Dependências permitidas:** `engine` ← `db` ← `mobile` e `ui-tokens` ← `mobile` (o `db` usa o engine para naturezas/tipos e o `zod` para validar os times). O `data-pipeline` depende de `db` e `engine`, e o `media-pack` depende do `data-pipeline` (config e formato da listagem). O engine e o `ui-tokens` não importam nada do monorepo (o `ui-tokens` repete a lista dos 18 tipos para continuar sem dependências), e a UI nunca importa `better-sqlite3` nem o pipeline.
 
 **Pacotes internos não têm build.** O `package.json` exporta `./src/index.ts`, e Metro, Vitest e tsx consomem o TypeScript direto.
 
@@ -178,6 +180,7 @@ No app, o `GameProvider` monta o contexto a partir de `settings.game_id` (padrã
   - `gmax_moves(ps_id, name, type_id, pokemon_id, power, description)`: os 33 golpes G-Max, com nome e descrição em inglês do Showdown (a PokeAPI não os tem). `power` só para os de poder fixo (160).
   - `pokemon_evolution` ganhou índices em `trigger_item_id` e `held_item_id` ("usado para evoluir" no detalhe do item).
 - `flavor_texts(id, text)` não tem idioma: o mesmo texto é guardado uma vez, mesmo entre idiomas (o `es-419` reaproveita o `es`). O idioma fica na tabela que referencia.
+- **Fase 4 (schema v4, `GAME_SCHEMA_VERSION = 4`):** `pokemon`, `moves`, `abilities` e `items` ganharam `ps_name`, o nome de exibição do Showdown (`Charizard-Mega-X`, `U-turn`), preenchido pelo `@pkmn/dex` no `derive/pkmn.ts`. A exportação de times usa `ps_name` e cai no nome em inglês quando falta (TMs, Potion). A importação resolve nomes por `toShowdownId` contra `ps_id`, depois contra o identifier sem hífens, e as espécies também contra `pokemon_forms.ps_id` (formas cosméticas como `Vivillon-Pokeball` viram a variedade).
 - `ps_id`: todos os Pokémon da série principal estão mapeados. Ficam sem mapeamento, de propósito, os modos cosméticos de Koraidon/Miraidon, os golpes Shadow (Colosseum/XD) e os itens que não são de batalha.
 
 ### `thedex-user.db` (dados do usuário, pronto para sync)
@@ -188,14 +191,17 @@ No app, o `GameProvider` monta o contexto a partir de `settings.game_id` (padrã
 - Toda linha tem `updated_at` (epoch ms) e `deleted_at` (tombstone). O merge é last-write-wins.
 - Referências ao jogo usam IDs da PokeAPI, sem FK física entre os bancos.
 
-| Tabela              | Chave                              | Notas                                                                                                                                                                                      |
-| ------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `settings`          | `key`                              | `ui_lang`, `game_langs`, `theme` (`system\|light\|dark\|amoled`), `sprite_style` (`official\|pixel\|3d\|home`), `game_id`                                                                  |
-| `favorites`         | `(entity_type, entity_id)`         |                                                                                                                                                                                            |
-| `teams`             | `id` (ULID)                        | `members_json` = até 6 `PokemonSet` compatíveis com o Showdown, validados com Zod. O time é a unidade de sync. Limites de EV por geração vivem no engine (na Gen 1–2, 252 em tudo é legal) |
-| `checklist_entries` | `(dex_scope, pokemon_id, form_id)` | `dex_scope` = `national` ou `version:<id>`; `form_id = 0` = forma padrão, senão `pokemon_forms.id` (Living Dex por forma)                                                                  |
-| `media_cache`       | `key`                              | Local ao aparelho, fora do backup. `key` = `<style>/<variant>/<pokemon_id>` (ícones de item: `item/default/<item_id>`)                                                                     |
-| `sync_state`        | `provider`                         | Fora do backup                                                                                                                                                                             |
+| Tabela              | Chave                              | Notas                                                                                                                                                                           |
+| ------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `settings`          | `key`                              | `ui_lang`, `game_langs`, `theme` (`system\|light\|dark\|amoled`), `sprite_style` (`official\|pixel\|3d\|home`), `game_id`, `checklist_kind` (`national\|game`)                  |
+| `favorites`         | `(entity_type, entity_id)`         |                                                                                                                                                                                 |
+| `teams`             | `id` (ULID)                        | `members_json` = até 6 `TeamMember` (Zod em `repos/teams.ts`), exportáveis como `PokemonSet` do Showdown. O time é a unidade de sync. Limites de EV por geração vivem no engine |
+| `checklist_entries` | `(dex_scope, pokemon_id, form_id)` | `dex_scope` = `national` ou `game:<id do jogo curado>`; `form_id = 0` = forma padrão, senão `pokemon_forms.id` (Living Dex por forma; a UI ainda marca só a forma padrão)       |
+
+- **`TeamMember`:** ids da PokeAPI para tudo que é entidade (variedade, habilidade, item, golpes por slot, `null` = vazio) e as convenções do Showdown para o resto: EVs 0–255 e IVs 0–31 em todas as gerações. Na Gen 1–2 o DV é ⌊IV/2⌋ (15 → IV 31), o DV de PS é derivado dos outros, a Sp. Def segue o Special e o Stat Exp é EV² (o bônus ⌊EV/4⌋ fica igual ao das gerações seguintes). Natureza, Tera Type e tipo do Hidden Power são identifiers (`adamant`, `steel`, `stellar`). `decodeTeamMembers` descarta membros inválidos em vez de perder o time; acima dos limites da geração (um 255 importado, um time movido para a Gen 6+), EVs e IVs contam como o limite.
+- **Checklist:** um nível por Pokémon (nada → visto → capturado → shiny), gravado como as três flags; o filtro "Capturado" da Pokédex lê a coleção escolhida em `checklist_kind`.
+  | `media_cache` | `key` | Local ao aparelho, fora do backup. `key` = `<style>/<variant>/<pokemon_id>` (ícones de item: `item/default/<item_id>`) |
+  | `sync_state` | `provider` | Fora do backup |
 
 **Migrations:** `pnpm db:generate` roda o drizzle-kit (driver expo) em `packages/db/migrations/user/`, e `scripts/bundle-migrations.ts` gera `migrations.generated.ts` com o SQL como string. Funciona em Metro, Vitest e Tauri, sem plugin babel. **Nunca edite uma migration já publicada.**
 
@@ -224,7 +230,7 @@ No app, o `GameProvider` monta o contexto a partir de `settings.game_id` (padrã
 - O `finalize` imprime o peso por tabela e índice (via `dbstat`) e o grava em `dist/manifest.json`, com a `pokemon_moves` em destaque.
 - A `pokemon_moves` é sempre `WITHOUT ROWID`.
 - **Deduplicação por jogo** (`--dedupe-learnsets`): linhas idênticas entre os version groups de um mesmo jogo ficam só no version group base, e o repo faz a união pelos `versionGroupIds`. Um teste de equivalência protege essa troca. Ela é ligada automaticamente só se o banco passar de 60 MB e houver o que remover. O `manifest.json` informa o potencial em `learnsetDedupePotential`.
-- **Estado no SHA fixado:** 53,1 MB (alerta ativo). `pokemon_moves` ocupa 18,9 MB (36%, sendo 8,8 MB de índices), `flavor_texts` 9,2 MB, `encounters` 5,9 MB e busca (termos + FTS) 7,4 MB. O manifesto de mídia (`media_assets`, ~14,6 mil arquivos, e `item_icons`, ~2,2 mil) soma ~0,5 MB. As tabelas da Fase 3 somam ~0,2 MB. O potencial da deduplicação é 0, porque a PokeAPI não tem learnsets de DLC.
+- **Estado no SHA fixado:** 53,2 MB (alerta ativo). `pokemon_moves` ocupa 18,9 MB (36%, sendo 8,8 MB de índices), `flavor_texts` 9,2 MB, `encounters` 5,9 MB e busca (termos + FTS) 7,4 MB. O manifesto de mídia (`media_assets`, ~14,6 mil arquivos, e `item_icons`, ~2,2 mil) soma ~0,5 MB. As tabelas da Fase 3 somam ~0,2 MB, e o `ps_name` da Fase 4 pouco mais de 0,05 MB. O potencial da deduplicação é 0, porque a PokeAPI não tem learnsets de DLC.
 - **Próximas alavancas, se precisar:** remover `es-419`/`cs` dos textos longos, ou deixar o índice `(move_id, version_group_id)` como tabela inversa compacta.
 
 **Propriedade intelectual:** os repositórios de sprites e cries são CC0, mas o conteúdo é © The Pokémon Company. O pacote `cry-aac` redistribui esses sons a partir do repositório público do TheDex. Faça uma revisão jurídica antes de publicar nas lojas.
@@ -235,7 +241,7 @@ No app, o `GameProvider` monta o contexto a partir de `settings.game_id` (padrã
 - **No banco:** `media_sources(style, variant, base_url, format)` guarda o prefixo imutável da URL (com o SHA), e `media_assets(pokemon_id, style, variant, path, bytes)` lista os arquivos que existem. URL = `base_url/path`. `meta` registra `source_sprites_sha` e `source_cries_sha`.
 - **Estilos:** `official` (official-artwork), `pixel` (sprites/pokemon), `3d` (GIFs animados do Showdown, renderizados dos modelos 3D), `home`, cada um com `default` e `shiny`; `cry` e `cry-aac` com `latest` e `legacy`; `item` (`sprites/items`, ícones da Item Dex). Pacotes completos: arte oficial ~344 MB, HOME ~320 MB, 3D ~238 MB, pixel ~3 MB, gritos ~27 MB (`.ogg`) ou ~20 MB (AAC), ícones de itens ~14 MB.
 - **Ícones de itens (RF05.2):** a fonte `item` tem `entity: 'item'` em `MEDIA_SOURCES`: os arquivos se chamam `<identifier>.png` e vão para `item_icons(item_id, path, bytes)` (2.222 dos 2.223 itens). No app, `MediaService.itemIcon(itemId)`/`useItemIconUri` usam o mesmo cache e o "Baixar todos" inclui o pacote `item`.
-- **`MediaService`** (`apps/mobile/src/shared/media/`): baixa sob demanda com `File.downloadFileAsync` para `Paths.document/media/<style>/<variant>/` (o SO não limpa), registra em `media_cache` do user DB e mantém um cache em memória da sessão. Sem rede e sem cache, devolve `null` e a UI mostra um placeholder; falhas só são tentadas de novo após 30 s. "Baixar todos os pacotes" e "Apagar mídia baixada" ficam em Configurações.
+- **`MediaService`** (`apps/mobile/src/shared/media/`): baixa sob demanda com `File.downloadFileAsync` para `Paths.document/media/<style>/<variant>/` (o SO não limpa), registra em `media_cache` do user DB e mantém um cache em memória da sessão. Sem rede e sem cache, devolve `null` e a UI mostra um placeholder; falhas só são tentadas de novo após 30 s. O tamanho do arquivo é conferido com os bytes da listagem (`isCompleteDownload`) ao baixar e ao ler o cache: um download cortado é apagado e baixado de novo, em vez de ficar no cache sem renderizar. "Baixar todos os pacotes" e "Apagar mídia baixada" ficam em Configurações.
 - **Listas usam `pixel`** (~600 B por sprite), qualquer que seja o estilo global; o estilo escolhido vale no perfil e na árvore de evolução.
 - **Gritos:** jogos da Gen 1–5 tocam o `legacy` (original), os demais o `latest`, via expo-audio.
 - **Gritos no iOS (`cry-aac`):** o iOS não decodifica os `.ogg` do PokeAPI/cries (Vorbis; vários são MP3 com extensão `.ogg`). O `MediaService.cryStyle` (`cryStyleFor`, em `media-paths.ts`) escolhe `cry-aac` no iOS e `cry` nos demais; `canPlayCries` só é `false` se o data DB não tiver as fontes da plataforma. A UI não sabe qual formato toca.
@@ -264,6 +270,13 @@ No app, o `GameProvider` monta o contexto a partir de `settings.game_id` (padrã
 - **Atributos (`stats/`):** `calcStat` usa a aritmética inteira dos jogos (Gen 1–2: DV + Stat Exp, raiz limitada a 255; Gen 3+: IV/EV/natureza; Shedinja = 1 PS) e `statBounds` dá as faixas do perfil (mín.: 0 IV/0 EV/natureza desfavorável; máx.: 31/252/favorável).
 - **A geração é sempre um parâmetro explícito** (`gen: Generation`), nunca um default.
 - Entradas e saídas são objetos simples. Os tipos usam os identifiers da PokeAPI (`'fire'`, `'special-attack'`…).
+- **Showdown (`showdown/`):** `parseShowdownTeams` lê um set, um time ou um backup com cabeçalhos `=== [formato] Pasta/Nome ===`; `exportShowdownSet`/`exportShowdownTeam` omitem os padrões como o Showdown (na Gen 1–2 o EV padrão é 252, então zeros são escritos). Os nomes ficam em texto; o mapeamento para ids é do `@thedex/db`.
+- **Cobertura de time (`team/`):** `teamDefense` (matriz por tipo atacante, alerta `critical` com 3+ fracos e `warning` com 2 fracos sem resistência) e `teamOffense` (melhor multiplicador dos golpes de dano). As imunidades de habilidade (`types/abilities.ts`: Levitate, Flash Fire, Volt Absorb…, Lightning Rod/Storm Drain só a partir da Gen 5, Wonder Guard) entram na defesa; outros efeitos de habilidade e item, não.
+- **Captura (`catch/`, RF11.2):** `catchChance` segue as decompilações da pret (Gen 1–4) e o ponto fixo de 4096 documentado por Bulbapedia/Dragonfly Cave (Gen 5–9), com os bugs dos jogos (Gen 2: status só conta sono/congelamento, Level Ball ignora PS e status, Love Ball com o mesmo gênero, Moon Ball nunca vale; Heavy Ball da HGSS sem a faixa 0). Os testes usam exemplos calculados passo a passo. Decisões onde as fontes divergem:
+  - Gen 1 usa a forma fechada com RNG independente (as Great/Ultra Balls reais têm RNG correlacionado).
+  - Gen 3–4: `a = 0` (Heavy Ball da HGSS em lendários leves) divide por zero no jogo; o engine usa 1 e marca `clamped`.
+  - Gen 6+: `pow(…, 3/16)` em float32; Roto Catch ×2; Safari/Sport Ball ×1 na Gen 8 (SwSh); Heavy Ball com mínimo 1 (regra de USUM em diante; em SM era 0).
+  - Let's Go, Legends: Arceus/Z-A e Colosseum/XD têm sistemas próprios: a calculadora mostra a fórmula da geração e avisa.
 - **100% de cobertura** (threshold no Vitest). Os testes usam valores de referência da Bulbapedia e do Showdown e cobrem os casos extremos: Shedinja HP = 1, DV/Stat Exp na Gen 1–2, floors da natureza, tabela de tipos da Gen 1 (Ghost × Psychic = 0) e Fada/Aço antes e depois da Gen 6.
 
 ### Banco (`@thedex/db`)
@@ -272,13 +285,17 @@ No app, o `GameProvider` monta o contexto a partir de `settings.game_id` (padrã
 - Os repos recebem a instância Drizzle por parâmetro (better-sqlite3 em testes e no pipeline, expo-sqlite no app).
 - O data DB é tratado como read-only.
 - Toda consulta quente tem teste de `EXPLAIN QUERY PLAN`. O teste reprova `SCAN <tabela grande>` sem índice; scans de virtual table FTS são permitidos.
-- As consultas quentes rodam numa conexão igual à do app (`openAppLikeConnection`: user DB em memória migrado + game DB anexado), então o filtro de captura, que cruza os dois bancos, também é verificado. Hoje são 95 consultas (busca, lista com cada ordenação e filtro, abas do perfil, listas e detalhes das Dexes da Fase 3).
+- As consultas quentes rodam numa conexão igual à do app (`openAppLikeConnection`: user DB em memória migrado + game DB anexado), então o filtro de captura, que cruza os dois bancos, também é verificado. Hoje são 118 consultas (busca, lista com cada ordenação e filtro, abas do perfil, listas e detalhes das Dexes da Fase 3, times, checklist e nomes do Showdown da Fase 4).
+- Repositórios da Fase 4: `teams.ts` (`teamMemberSchema`, `listTeams`, `getTeam`, `saveTeam`, `deleteTeam` com tombstone), `checklist.ts` (`checklistScope`, `listChecklistDex`, `getChecklistEntries`, `setChecklistEntries` em lotes de 200, `getChecklistFlags`) e `team-data.ts` (`getMoveSummaries`, `getEntityNames`, `resolveShowdownNames`, `getShowdownNames`). A legalidade dos golpes usa `getLearnableMoveIds` (`learnset.ts`): o learnset da variedade, o da variedade base (Mega, G-Max, formas de batalha) e o das pré-evoluções (golpes de ovo do Larvitar valem para o Tyranitar), como o validador do Showdown. `createUlid(time, random)` gera os ids dos times.
 - Repositórios da Fase 3: `moves.ts` (`listMoves`, `getMoveDetail`, `getMoveLearners`, `listGmaxMoves`), `abilities.ts` (`listAbilityDex`, `getAbilityDetail`, `getAbilityHolders`), `items.ts` (`listItems`, `getItemDetail`), `locations.ts` (`listLocationRegions`, `listLocations`, `getLocation`), `encounters.ts` (`getLocationEncounters`), `natures.ts` (`listNatures`) e `getGameFeatures` (o que a PokeAPI tem do jogo: learnsets, encontros; e as mecânicas). Os dados de golpe vêm do VG base do jogo (`ctx.versionGroupIds[0]`); golpes Z/Max só aparecem na lista em jogos com a mecânica (`games.has_z`/`has_dynamax`).
 
 ### UI (Fase 2+)
 
 - Feature-Sliced: `src/app/` (rotas do Expo Router, finas) → `src/features/` → `src/entities/` → `src/shared/`. Features não importam umas às outras; o que é comum vai para `entities/` ou `shared/`.
 - **Rotas:** abas em `src/app/(tabs)/` (`expo-router/js-tabs`): `/` (Pokédex, RF01), `/moves` (RF03), `/abilities` (RF04), `/items` (RF05) e `/more` (busca global em todas as entidades + atalhos). No stack raiz, sobre as abas: `/pokemon/[id]` (RF02), `/move/[id]`, `/ability/[id]`, `/item/[id]`, `/location/[id]`, `/locations` (RF06), `/types?type=<id>` (RF07.1), `/natures` (RF07.2), `/game` (seletor, modal), `/settings`, `/diagnostics` (só em `__DEV__`). O cabeçalho das abas tem o chip do jogo e Configurações (`features/navigation/HeaderActions.tsx`).
+- **Ferramentas (Fase 4)**, abertas pela seção "Ferramentas" de `/more` e pelos atalhos do cabeçalho do perfil (comparar, calculadoras): `/teams` (RF08.1), `/team/[id]` (abas Time, Cobertura e Exportar), `/team/[id]/[slot]` (RF08.2), `/team-import` (modal, RF08.4), `/checklist` (RF09), `/compare?ids=6,9` (RF10, até 6), `/calc/stats?pokemon=<id>` e `/calc/catch?pokemon=<id>` (RF11).
+- Um time é montado para o **seu** jogo, não o selecionado: `useGameContextFor(team.gameId)` resolve o contexto dele. `team-store.ts` guarda em memória os times abertos (lista, time e slot ficam em sincronia) e grava cada mudança no user DB na hora.
+- Seletores reutilizáveis: `PokemonPicker` (Pokédex do jogo + busca FTS), `PickerModal` (lista com busca local normalizada por `normalizeSearchText`), `NumberField`, `ProgressBar`. Exportação: texto via `expo-clipboard` e `Share` do RN; card em PNG via `react-native-view-shot` + `expo-sharing`.
 - Ordem dos providers em `src/app/_layout.tsx`: `DatabaseProvider` → `SettingsProvider` → i18n → `ThemeProvider` (+ tema do React Navigation) → `GameProvider` (contexto + `features` do jogo) → `MediaProvider` → `CatalogProvider` (nomes de tipos, atributos e categorias de golpe do jogo).
 - Listas das Dexes: `ListToolbar` (busca + chips + contagem), `SortSheet` genérico, `useEntitySearch(tipo, texto)` + `applySearch` (busca FTS cruzada com a lista filtrada), `toSectionRows` para listas com seções no FlashList. Detalhes com listas longas (quem aprende o golpe, portadores da habilidade, encontros do local) usam FlashList com o conteúdo no `ListHeaderComponent`. Ícones: `@expo/vector-icons` (`shared/ui/Icon.tsx`, Material Community Icons, fonte embarcada).
 - O banco chega aos componentes por `useAppDatabase()` (`src/shared/db/DatabaseProvider.tsx`). Os repos de `@thedex/db` recebem `db` desse hook, e o contexto de jogo vem de `useGame().ctx`. Carregamentos assíncronos usam `useAsync(load, deps)` (`src/shared/hooks/`), que ignora respostas obsoletas.

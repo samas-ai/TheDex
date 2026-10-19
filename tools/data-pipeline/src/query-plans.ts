@@ -3,24 +3,32 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import {
   getAbilityDetail,
   getAbilityHolders,
+  getChecklistEntries,
+  getChecklistFlags,
+  getEntityNames,
   getEvolutionChain,
   getFlavorTexts,
   getGameFeatures,
   getItemDetail,
   getItemIcon,
+  getLearnableMoveIds,
   getLearnset,
   getLocation,
   getLocationEncounters,
   getMoveDetail,
   getMoveLearners,
+  getMoveSummaries,
   getPokemon,
   getPokemonEncounters,
   getPokemonForms,
   getPokemonMedia,
   getPokemonMoves,
   getPokemonProfile,
+  getShowdownNames,
+  getTeam,
   listAbilities,
   listAbilityDex,
+  listChecklistDex,
   listDamageClasses,
   listGamePokemon,
   listGmaxMoves,
@@ -30,9 +38,11 @@ import {
   listMoves,
   listNatures,
   listPokedex,
+  listTeams,
   MOVE_SORT_KEYS,
   POKEDEX_SORT_KEYS,
   resolveGameContext,
+  resolveShowdownNames,
   searchQuery,
   type GameContext,
 } from '@thedex/db';
@@ -117,7 +127,7 @@ export function openAppLikeConnection(dataDbFile: string): Database.Database {
 
 /**
  * Runs the hot repository queries (search, Pokédex list with every filter and sort, profile
- * tabs, the Phase 3 encyclopedias) through a logging Drizzle instance and checks every
+ * tabs, the Phase 3 encyclopedias, the Phase 4 tools) through a logging Drizzle instance and checks every
  * statement with EXPLAIN QUERY PLAN. The sample ids exist in the real data and the fixtures:
  * Thunderbolt (85), Potion (17), Viridian Forest (155), Kanto (1).
  */
@@ -215,6 +225,37 @@ export async function checkHotQueryPlans(
     await run('getLocation', () => getLocation(db, 155, kanto));
     await run('getLocationEncounters', () => getLocationEncounters(db, 155, kanto));
     await run('listNatures', () => listNatures(db, ctx));
+
+    // Phase 4: team builder, checklist, comparator and calculators.
+    await run('listTeams', () => listTeams(db));
+    await run('getTeam', () => getTeam(db, '01ARYZ6S41TSV4RRFFQ69G5FAV'));
+    await run('listChecklistDex national', () => listChecklistDex(db, ctx, 'national'));
+    await run('listChecklistDex game', () => listChecklistDex(db, ctx, 'game'));
+    await run('getChecklistEntries', () => getChecklistEntries(db, 'national'));
+    await run('getChecklistFlags', () => getChecklistFlags(db, 'national', [sample.pokemonId]));
+    await run('getMoveSummaries', () => getMoveSummaries(db, ctx, [85, 44]));
+    await run('getLearnableMoveIds', () => getLearnableMoveIds(db, sample.pokemonId, ctx));
+    for (const kind of ['pokemon', 'item', 'ability', 'move'] as const) {
+      await run(`getEntityNames ${kind}`, () =>
+        getEntityNames(db, ctx.langChain, kind, [sample.pokemonId, 17, 65, 85]),
+      );
+    }
+    await run('resolveShowdownNames', () =>
+      resolveShowdownNames(db, {
+        species: ['Pikachu', 'Vivillon-Pokeball', 'Missingno'],
+        items: ['Leftovers', 'Potion'],
+        abilities: ['Static'],
+        moves: ['Thunderbolt', 'Hidden Power'],
+      }),
+    );
+    await run('getShowdownNames', () =>
+      getShowdownNames(db, {
+        pokemon: [sample.pokemonId],
+        items: [17],
+        abilities: [65],
+        moves: [85],
+      }),
+    );
 
     const violations: PlanViolation[] = [];
     for (const query of captured) {

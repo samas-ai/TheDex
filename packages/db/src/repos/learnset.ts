@@ -124,3 +124,34 @@ export async function getPokemonMoves(
     })),
   };
 }
+
+/**
+ * Moves the variety can know in the context game (RF08.2 legality check): its own learnset, its
+ * base variety's (Mega, G-Max and battle forms have none) and its pre-evolutions' (egg moves
+ * and level-up moves of earlier stages, as Showdown's validator does), in every version group
+ * of the game.
+ */
+export async function getLearnableMoveIds(
+  db: AnySQLiteDatabase,
+  pokemonId: number,
+  ctx: GameContext,
+): Promise<Set<number>> {
+  const rows = (await db.all(sql`
+    WITH RECURSIVE stage(species_id) AS (
+      SELECT species_id FROM pokemon WHERE id = ${pokemonId}
+      UNION
+      SELECT ps.evolves_from_species_id FROM pokemon_species ps
+      JOIN stage stg ON ps.id = stg.species_id
+      WHERE ps.evolves_from_species_id IS NOT NULL
+    ),
+    source(pokemon_id) AS (
+      SELECT ${pokemonId}
+      UNION SELECT from_pokemon_id FROM form_changes WHERE to_pokemon_id = ${pokemonId}
+      UNION SELECT p.id FROM pokemon p JOIN stage stg ON p.species_id = stg.species_id
+        WHERE p.is_default = 1
+    )
+    SELECT DISTINCT pm.move_id FROM source src
+    JOIN pokemon_moves pm ON pm.pokemon_id = src.pokemon_id
+    WHERE pm.version_group_id IN (${sqlList(ctx.versionGroupIds)})`)) as { move_id: number }[];
+  return new Set(rows.map((row) => row.move_id));
+}

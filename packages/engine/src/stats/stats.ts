@@ -41,6 +41,15 @@ export function evLimits(gen: Generation): EvLimits {
   return { perStat: gen <= 5 ? 255 : 252, total: 510 };
 }
 
+/**
+ * EV caps on Showdown's 0–255 scale (team builder, calculators): 252 per stat from Gen 6 and in
+ * Gen 1–2 (where 252 everywhere is legal: no total), 255 in Gen 3–5; 510 in total from Gen 3.
+ */
+export function showdownEvLimits(gen: Generation): EvLimits {
+  if (gen <= 2) return { perStat: 252, total: null };
+  return { perStat: gen <= 5 ? 255 : 252, total: 510 };
+}
+
 function assertInteger(name: string, value: number, min: number, max: number): void {
   if (!Number.isInteger(value) || value < min || value > max) {
     throw new RangeError(`${name} must be an integer in [${min}, ${max}], got ${value}`);
@@ -143,4 +152,26 @@ export function statBounds(input: Omit<StatInput, 'iv' | 'ev' | 'nature'>): Stat
     maxNeutral,
     max: calcStat({ ...input, iv: maxIv(gen), ev: maxEv, nature: 1.1 }),
   };
+}
+
+/**
+ * Gen 1–2 Stat Experience for an EV on Showdown's scale: Stat Exp = EV², so the bonus is
+ * ⌊EV / 4⌋ exactly as in later generations (252 → 63, the maximum).
+ */
+export function statExpFromEv(ev: number): number {
+  assertInteger('EV', ev, 0, 255);
+  return ev * ev;
+}
+
+/**
+ * Reverse calculation (RF11.1): every IV (DV in Gen 1–2) that gives `value` with the other
+ * inputs, ascending. Empty when none does (wrong level, EVs or nature, or an impossible value).
+ */
+export function possibleIvs(input: Omit<StatInput, 'iv'> & { readonly value: number }): number[] {
+  const { value, ...rest } = input;
+  const ivs: number[] = [];
+  for (let iv = 0; iv <= maxIv(input.gen); iv++) {
+    if (calcStat({ ...rest, iv }) === value) ivs.push(iv);
+  }
+  return ivs;
 }

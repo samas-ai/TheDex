@@ -1,3 +1,4 @@
+export { abilityImmunity, applyDefensiveAbility } from './abilities';
 export { chartMultiplier, type Multiplier } from './chart';
 export {
   defensiveMultipliers,
