@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { PokedexEntry } from '@thedex/db';
 import {
   activeFilterCount,
+  activeFilterGroups,
   applySearch,
   EMPTY_FILTERS,
+  needsCombinedFilters,
   nextSort,
   sortValue,
   toggle,
@@ -45,6 +47,22 @@ describe('pokedex state', () => {
         includeForms: false,
       }),
     ).toBe(4);
+  });
+
+  it('counts filter groups and gates combining them (PRO)', () => {
+    const types = { ...EMPTY_FILTERS, typeIds: [10, 3] };
+    const typesAndGen = { ...types, generationIds: [1, 2] };
+    expect(activeFilterGroups(EMPTY_FILTERS)).toBe(0);
+    // Two types, several generations or the forms switch stay one group each.
+    expect(activeFilterGroups({ ...types, includeForms: false })).toBe(1);
+    expect(activeFilterGroups({ ...typesAndGen, abilityId: 65, eggGroupId: 1 })).toBe(4);
+    expect(needsCombinedFilters(EMPTY_FILTERS, types)).toBe(false);
+    expect(needsCombinedFilters(types, { ...types, typeIds: [10] })).toBe(false);
+    expect(needsCombinedFilters(types, typesAndGen)).toBe(true);
+    expect(needsCombinedFilters(types, { ...types, capture: 'caught' })).toBe(true);
+    // Removing or changing within groups is always allowed.
+    expect(needsCombinedFilters(typesAndGen, { ...typesAndGen, generationIds: [1] })).toBe(false);
+    expect(needsCombinedFilters(typesAndGen, types)).toBe(false);
   });
 
   it('combines at most two types', () => {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { deleteTeam, getTeam, saveTeam, type AnySQLiteDatabase, type Team } from '@thedex/db';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
+import { subscribeUserData, useUserDataVersion } from '../../shared/db/user-data-events';
 
 /**
  * In-memory copy of the teams being edited, shared by the team, slot and list screens so they
@@ -47,9 +48,16 @@ class TeamStore {
     this.emit();
     await deleteTeam(db, id, Date.now());
   }
+
+  /** Forgets the cached teams (a backup restore replaced them); open screens load them again. */
+  reset(): void {
+    this.teams.clear();
+    this.emit();
+  }
 }
 
 export const teamStore = new TeamStore();
+subscribeUserData(() => teamStore.reset());
 
 /** Changes whenever a team is saved or deleted (for list screens). */
 export function useTeamsVersion(): number {
@@ -60,9 +68,10 @@ export function useTeamsVersion(): number {
 export function useTeam(id: string) {
   const { db } = useAppDatabase();
   const team = useSyncExternalStore(teamStore.subscribe, () => teamStore.get(id));
+  const userData = useUserDataVersion();
   useEffect(() => {
     void teamStore.load(db, id);
-  }, [db, id]);
+  }, [db, id, userData]);
   const update = useCallback(
     (change: (team: Team) => Team) => {
       const current = teamStore.get(id);

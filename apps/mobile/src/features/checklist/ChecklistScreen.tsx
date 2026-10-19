@@ -13,10 +13,13 @@ import {
 import { RADII, SPACING } from '@thedex/ui-tokens';
 import { PokemonSprite } from '../../entities/pokemon/PokemonSprite';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
+import { useUserDataVersion } from '../../shared/db/user-data-events';
 import { dexNumber } from '../../shared/format';
 import { useGame } from '../../shared/game/GameProvider';
 import { useAsync } from '../../shared/hooks/useAsync';
 import { useEntitySearch } from '../../shared/hooks/useEntitySearch';
+import { ProGate } from '../../shared/pro/ProGate';
+import { useRequirePro } from '../../shared/pro/ProProvider';
 import { useSettings } from '../../shared/settings/SettingsProvider';
 import { useTheme } from '../../shared/theme/ThemeProvider';
 import { Icon, type IconName } from '../../shared/ui/Icon';
@@ -49,7 +52,8 @@ const MARKS: readonly { level: 1 | 2 | 3; icon: IconName; key: 'seen' | 'caught'
 
 /**
  * RF09: collection tracker for the National Dex or the selected game — seen / caught / shiny
- * caught per Pokémon or per generation/box, progress bars and Living Dex / shiny filters.
+ * caught per Pokémon or per generation/box, progress bars and Living Dex / shiny filters. Shiny
+ * marks and the shiny filter are PRO (`checklist.shiny`, RNF08).
  */
 export function ChecklistScreen() {
   const { t } = useTranslation();
@@ -60,9 +64,11 @@ export function ChecklistScreen() {
   const kind = settings.checklistKind;
   const scope = checklistScope(kind, ctx.gameId);
   const dex = useAsync(() => listChecklistDex(db, ctx, kind), [db, ctx, kind]);
+  const userData = useUserDataVersion();
+  const requirePro = useRequirePro();
   const stored = useAsync(
     async () => ({ scope, entries: await getChecklistEntries(db, scope) }),
-    [db, scope],
+    [db, scope, userData],
   );
   const [levels, setLevels] = useState<ReadonlyMap<number, ChecklistLevel>>(new Map());
   useEffect(() => {
@@ -111,9 +117,12 @@ export function ChecklistScreen() {
     [db, scope, levels],
   );
   const onTap = useCallback(
-    (entry: ChecklistDexEntry, current: ChecklistLevel, tapped: 1 | 2 | 3) =>
-      mark([entry], () => tapLevel(current, tapped)),
-    [mark],
+    (entry: ChecklistDexEntry, current: ChecklistLevel, tapped: 1 | 2 | 3) => {
+      const apply = () => mark([entry], () => tapLevel(current, tapped));
+      if (tapped === 3) requirePro('checklist.shiny', apply);
+      else apply();
+    },
+    [mark, requirePro],
   );
   const groupTitle = (group: ChecklistGroup) =>
     group.kind === 'generation'
@@ -149,24 +158,37 @@ export function ChecklistScreen() {
               ))}
             </View>
             <Card>
-              {bars.map((bar) => (
-                <View key={bar.key} style={styles.bar}>
-                  <ThemedText variant="small" style={styles.barLabel}>
-                    {t(`checklist.status.${bar.key}`)}
-                  </ThemedText>
-                  <ProgressBar
-                    value={progress.total === 0 ? 0 : bar.done / progress.total}
-                    color={bar.color}
-                  />
-                  <ThemedText variant="caption" muted style={styles.barValue}>
-                    {t('checklist.progress', {
-                      done: bar.done,
-                      total: progress.total,
-                      percent: percentOf(bar.done, progress.total),
-                    })}
-                  </ThemedText>
-                </View>
-              ))}
+              {bars.map((bar) => {
+                const row = (
+                  <View key={bar.key} style={styles.bar}>
+                    <ThemedText variant="small" style={styles.barLabel}>
+                      {t(`checklist.status.${bar.key}`)}
+                    </ThemedText>
+                    <ProgressBar
+                      value={progress.total === 0 ? 0 : bar.done / progress.total}
+                      color={bar.color}
+                    />
+                    <ThemedText variant="caption" muted style={styles.barValue}>
+                      {t('checklist.progress', {
+                        done: bar.done,
+                        total: progress.total,
+                        percent: percentOf(bar.done, progress.total),
+                      })}
+                    </ThemedText>
+                  </View>
+                );
+                return bar.key === 'shiny' ? (
+                  <ProGate
+                    key={bar.key}
+                    feature="checklist.shiny"
+                    label={t('checklist.status.shiny')}
+                  >
+                    {row}
+                  </ProGate>
+                ) : (
+                  row
+                );
+              })}
             </Card>
             <SearchField
               value={query}
@@ -179,7 +201,11 @@ export function ChecklistScreen() {
                   key={key}
                   label={t(`checklist.filters.${key}`)}
                   selected={filter === key}
-                  onPress={() => setFilter(key)}
+                  onPress={() =>
+                    key === 'missing-shiny'
+                      ? requirePro('checklist.shiny', () => setFilter(key))
+                      : setFilter(key)
+                  }
                 />
               ))}
             </View>
@@ -230,8 +256,11 @@ export function ChecklistScreen() {
               color={level === 0 ? theme.colors.surfaceVariant : undefined}
               textColor={level === 0 ? theme.colors.text : undefined}
               onPress={() => {
-                if (batch) mark(batch.entries, (current) => batchLevel(current, level));
+                const entries = batch?.entries ?? [];
                 setBatch(null);
+                const apply = () => mark(entries, (current) => batchLevel(current, level));
+                if (level === 3) requirePro('checklist.shiny', apply);
+                else apply();
               }}
             />
           ))}

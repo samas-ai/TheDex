@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { checklistScope, listPokedex, searchQuery, type PokedexEntry } from '@thedex/db';
 import { SPACING } from '@thedex/ui-tokens';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
+import { useUserDataVersion } from '../../shared/db/user-data-events';
 import { useGame } from '../../shared/game/GameProvider';
 import { useAsync } from '../../shared/hooks/useAsync';
 import { useSettings } from '../../shared/settings/SettingsProvider';
@@ -36,6 +37,8 @@ export function PokedexScreen() {
   const { ctx } = useGame();
   const { settings } = useSettings();
   const captureScope = checklistScope(settings.checklistKind, ctx.gameId);
+  // The capture filter reads the checklist, which a backup restore may replace.
+  const userData = useUserDataVersion();
   const [filters, setFilters] = useState<PokedexFilterState>(EMPTY_FILTERS);
   const [sort, setSort] = useState<PokedexSort>(DEFAULT_SORT);
   const [query, setQuery] = useState('');
@@ -43,7 +46,7 @@ export function PokedexScreen() {
 
   const list = useAsync(
     () => listPokedex(db, ctx, { filters: toRepoFilters(filters, captureScope), sort }),
-    [db, ctx, filters, sort, captureScope],
+    [db, ctx, filters, sort, captureScope, userData],
   );
   const search = useAsync(async () => {
     if (query.trim() === '') return null;

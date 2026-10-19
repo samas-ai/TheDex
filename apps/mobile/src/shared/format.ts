@@ -47,3 +47,14 @@ export function sellPrice(cost: number | null): number | null {
 export function formatPrice(value: number, locale: string): string {
   return `₽${new Intl.NumberFormat(locale).format(value)}`;
 }
+
+/** Date and time in the UI locale (`Oct 19, 2026, 08:52`, `19 de out. de 2026, 08:52`). */
+export function formatDateTime(epochMs: number, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(epochMs));
+}

@@ -12,19 +12,23 @@ import { DatabaseProvider } from '../shared/db/DatabaseProvider';
 import { GameProvider } from '../shared/game/GameProvider';
 import { initI18n } from '../shared/i18n/i18n';
 import { MediaProvider } from '../shared/media/MediaProvider';
+import { ProProvider } from '../shared/pro/ProProvider';
 import { resolveUiLanguage } from '../shared/settings/settings';
 import { SettingsProvider, useSettings } from '../shared/settings/SettingsProvider';
 import { ThemeProvider, useNavigationTheme, useTheme } from '../shared/theme/ThemeProvider';
 
 /**
- * Provider order: databases → user settings → UI language → theme → selected game (its
- * GameContext) → media cache → per-game lookup tables → screens.
+ * Provider order: databases → user settings → PRO plan (the theme needs `theme.amoled`) → UI
+ * language → theme → selected game (its GameContext) → media cache → per-game lookup tables →
+ * screens.
  */
 export default function RootLayout() {
   return (
     <DatabaseProvider>
       <SettingsProvider>
-        <LocalizedApp />
+        <ProProvider>
+          <LocalizedApp />
+        </ProProvider>
       </SettingsProvider>
     </DatabaseProvider>
   );
@@ -76,6 +80,7 @@ function ThemedApp() {
                 name="team-import"
                 options={{ presentation: 'modal', title: t('nav.importTeam') }}
               />
+              <Stack.Screen name="pro" options={{ presentation: 'modal', title: t('nav.pro') }} />
             </Stack>
           </CatalogProvider>
         </MediaProvider>

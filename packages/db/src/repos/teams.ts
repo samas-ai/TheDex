@@ -65,6 +65,11 @@ export function decodeTeamMembers(json: string): TeamMember[] {
   } catch {
     return [];
   }
+  return parseTeamMembers(raw);
+}
+
+/** Validates already-parsed members (a `.thedex` backup), with the same leniency. */
+export function parseTeamMembers(raw: unknown): TeamMember[] {
   if (!Array.isArray(raw)) return [];
   const members: TeamMember[] = [];
   for (const item of raw) {

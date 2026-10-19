@@ -43,12 +43,14 @@ export const ptBR: Translations = {
     compare: 'Comparar',
     statCalc: 'Calculadora de atributos',
     catchCalc: 'Calculadora de captura',
+    pro: 'TheDex PRO',
   },
   pokedex: {
     searchPlaceholder: 'Buscar Pokémon',
     count: '{{count}} Pokémon',
     empty: 'Nenhum Pokémon corresponde a esses filtros.',
     clearFilters: 'Limpar filtros',
+    oneFilterGroup: 'No plano grátis, filtre um grupo de cada vez. Combine filtros com o PRO.',
     sortKeys: {
       number: 'Número regional',
       national: 'Número nacional',
@@ -471,6 +473,9 @@ export const ptBR: Translations = {
     imported_one: '{{count}} time importado',
     imported_other: '{{count}} times importados',
     unresolved: 'Não encontrados (ficaram vazios): {{names}}',
+    freeLimit: 'Plano grátis: {{count}}/{{limit}} times',
+    importLimit:
+      'Este texto tem {{count}} time(s), mas o plano grátis só tem espaço para mais {{remaining}}. O PRO tem times ilimitados.',
   },
   teamEditor: {
     notFound: 'Time não encontrado.',
@@ -671,6 +676,7 @@ export const ptBR: Translations = {
     locationsHint: 'Cidades, rotas e cavernas por região',
     typesHint: 'Efetividade e tabela de tipos',
     naturesHint: 'Atributos e sabores preferidos',
+    proHint: 'Sem anúncios, times ilimitados, checklist shiny e mais',
     entityTypes: {
       pokemon: 'Pokémon',
       move: 'Golpes',
@@ -711,6 +717,75 @@ export const ptBR: Translations = {
     clearCache: 'Apagar mídia baixada',
     about: 'Sobre',
     dataVersion: 'Dados de jogo {{version}}',
+  },
+  backup: {
+    title: 'Backup',
+    hint: 'Times, favoritos, progresso do checklist e configurações, num arquivo .thedex que você pode guardar no Drive, no Arquivos ou onde quiser. A mídia baixada não entra.',
+    export: 'Exportar backup',
+    import: 'Restaurar backup',
+    modes:
+      'Mesclar mantém a versão mais recente de cada item. Substituir deixa este aparelho igual ao backup e traz de volta o que foi apagado depois dele.',
+    exported: 'Backup gerado: {{teams}} time(s), {{checklist}} marcação(ões) no checklist.',
+    importTitle: 'Restaurar backup',
+    contents:
+      'Backup de {{date}}: {{teams}} time(s) e {{checklist}} marcação(ões) no checklist.\n\nMesclar mantém a versão mais recente de cada item; Substituir deixa este aparelho igual ao backup.',
+    merge: 'Mesclar',
+    replace: 'Substituir',
+    replaceTitle: 'Substituir seus dados?',
+    replaceWarning:
+      'Os times e as marcações do checklist que não estão no backup serão removidos deste aparelho.',
+    restored:
+      'Restaurados: {{teams}} time(s), {{checklist}} marcação(ões) no checklist, {{settings}} configuração(ões).',
+    removed_one: '{{count}} item removido.',
+    removed_other: '{{count}} itens removidos.',
+    skipped_one: '{{count}} item mantido: este aparelho tinha uma versão mais recente.',
+    skipped_other: '{{count}} itens mantidos: este aparelho tinha uma versão mais recente.',
+    failed: 'Falha no backup',
+    errors: {
+      'invalid-json': 'Este arquivo está corrompido ou não é um backup do TheDex.',
+      'not-a-backup': 'Este arquivo não é um backup do TheDex.',
+      'newer-version':
+        'Este backup foi feito por uma versão mais nova do TheDex. Atualize o app para restaurá-lo.',
+      'invalid-data': 'Este backup tem dados inválidos e não foi restaurado.',
+    },
+  },
+  pro: {
+    tagline:
+      'Apoie o TheDex e desbloqueie as ferramentas avançadas. Todo o resto continua grátis e offline.',
+    planFree: 'Plano grátis',
+    planPro: 'PRO',
+    benefits: 'O que o PRO desbloqueia',
+    features: {
+      ads: { removed: { title: 'Sem anúncios', hint: 'Remove os banners do app.' } },
+      team: {
+        unlimited: {
+          title: 'Times ilimitados',
+          hint: 'O plano grátis guarda até {{limit}} times.',
+        },
+      },
+      checklist: {
+        shiny: { title: 'Checklist shiny', hint: 'Marque as capturas shiny e filtre o que falta.' },
+      },
+      pokedex: {
+        combinedFilters: {
+          title: 'Filtros combinados',
+          hint: 'Combine tipo, geração, região, habilidade, grupo de ovo e mais na Pokédex.',
+        },
+      },
+      theme: { amoled: { title: 'Tema AMOLED', hint: 'Preto absoluto, que poupa as telas OLED.' } },
+    },
+    buy: 'Quero o PRO',
+    restore: 'Restaurar compra',
+    storeUnavailable: 'As compras ainda não estão abertas nesta versão.',
+    simulate: 'Simular plano (desenvolvimento)',
+    simulateHint:
+      'Só nas builds de desenvolvimento: teste a experiência grátis e a PRO sem comprar.',
+    simulateStore: 'Loja',
+    locked: '{{feature}} — PRO',
+    bannerTitle: 'TheDex PRO',
+    banner: 'Sem anúncios, times ilimitados e checklist shiny',
+    adLabel: 'Anúncio',
+    badge: '{{label}} · PRO',
   },
   languages: {
     en: 'English',

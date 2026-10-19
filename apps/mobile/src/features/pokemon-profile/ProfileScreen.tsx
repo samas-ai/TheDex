@@ -7,6 +7,7 @@ import { SPACING } from '@thedex/ui-tokens';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
 import { useGame } from '../../shared/game/GameProvider';
 import { useAsync } from '../../shared/hooks/useAsync';
+import { AdSlot } from '../../shared/pro/AdSlot';
 import { useTheme } from '../../shared/theme/ThemeProvider';
 import { useTypeAccent } from '../../shared/theme/useTypeAccent';
 import { TabBar } from '../../shared/ui/TabBar';
@@ -84,6 +85,7 @@ export function ProfileScreen({ pokemonId }: { pokemonId: number }) {
           {tab === 'evolution' ? <EvolutionTab profile={data} accent={accent} /> : null}
           {tab === 'moves' ? <MovesTab profile={data} accent={accent} /> : null}
           {tab === 'locations' ? <LocationsTab profile={data} accent={accent} /> : null}
+          <AdSlot placement="profile" />
         </View>
       </ScrollView>
     </View>

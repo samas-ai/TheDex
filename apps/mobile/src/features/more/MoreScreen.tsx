@@ -7,6 +7,7 @@ import { SPACING } from '@thedex/ui-tokens';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
 import { useGame } from '../../shared/game/GameProvider';
 import { useAsync } from '../../shared/hooks/useAsync';
+import { AdSlot } from '../../shared/pro/AdSlot';
 import { useTheme } from '../../shared/theme/ThemeProvider';
 import { Icon, type IconName } from '../../shared/ui/Icon';
 import { LinkRow } from '../../shared/ui/LinkRow';
@@ -37,7 +38,7 @@ export function hitHref(hit: Pick<SearchHit, 'entityType' | 'entityId'>): Href {
 
 /**
  * "More": global search over every encyclopedia (RNF07), the tools (teams, checklist,
- * comparator, calculators), the secondary Dexes and the app.
+ * comparator, calculators), the secondary Dexes and the app (settings, TheDex PRO).
  */
 export function MoreScreen() {
   const { t } = useTranslation();
@@ -158,6 +159,12 @@ export function MoreScreen() {
                 leading={entry('cog')}
                 onPress={() => router.push('/settings')}
               />
+              <LinkRow
+                title={t('nav.pro')}
+                subtitle={t('more.proHint')}
+                leading={entry('star-four-points')}
+                onPress={() => router.push('/pro')}
+              />
               {__DEV__ ? (
                 <LinkRow
                   title={t('nav.diagnostics')}
@@ -167,6 +174,7 @@ export function MoreScreen() {
               ) : null}
             </Card>
           </Section>
+          <AdSlot placement="more" />
         </>
       )}
     </ScrollView>

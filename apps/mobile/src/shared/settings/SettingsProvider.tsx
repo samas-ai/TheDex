@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { readSettings, writeSetting } from '@thedex/db';
 import { useAppDatabase } from '../db/DatabaseProvider';
+import { useUserDataVersion } from '../db/user-data-events';
 import { decodeSettings, SETTING_KEY_OF, type AppSettings } from './settings';
 
 interface SettingsValue {
@@ -22,9 +23,13 @@ interface SettingsValue {
 
 const SettingsContext = createContext<SettingsValue | null>(null);
 
-/** Loads settings from the user DB once; children render after the first load. */
+/**
+ * Loads settings from the user DB (again after a backup restore); children render after the
+ * first load.
+ */
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { db } = useAppDatabase();
+  const userData = useUserDataVersion();
   const deviceLanguage = getLocales()[0]?.languageTag ?? null;
   const [settings, setSettings] = useState<AppSettings | null>(null);
 
@@ -40,7 +45,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [db, deviceLanguage]);
+  }, [db, deviceLanguage, userData]);
 
   const updateSettings = useCallback(
     (patch: Partial<AppSettings>) => {

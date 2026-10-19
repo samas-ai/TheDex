@@ -15,10 +15,17 @@ import { useCatalog } from '../../entities/catalog/CatalogProvider';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
 import { useGame } from '../../shared/game/GameProvider';
 import { useAsync } from '../../shared/hooks/useAsync';
+import { openPro, useFeature } from '../../shared/pro/ProProvider';
 import { useTheme } from '../../shared/theme/ThemeProvider';
 import { Sheet } from '../../shared/ui/Sheet';
 import { Button, Chip, Section, styles as ui, ThemedText } from '../../shared/ui/primitives';
-import { EMPTY_FILTERS, toggle, toggleType, type PokedexFilterState } from './pokedex-state';
+import {
+  EMPTY_FILTERS,
+  needsCombinedFilters,
+  toggle,
+  toggleType,
+  type PokedexFilterState,
+} from './pokedex-state';
 
 const CAPTURE_STATUSES: readonly CaptureStatus[] = ['seen', 'caught', 'shiny', 'not-caught'];
 const KNOWN_TAGS = [
@@ -35,7 +42,10 @@ const isKnownTag = (tag: string): tag is KnownTag =>
   (KNOWN_TAGS as readonly string[]).includes(tag);
 const MAX_ABILITY_RESULTS = 24;
 
-/** RF01.3 filters. Changes apply immediately (every filter query is < 10 ms). */
+/**
+ * RF01.3 filters. Changes apply immediately (every filter query is < 10 ms). The free plan uses
+ * one filter group at a time; combining groups opens the PRO screen (RNF08).
+ */
 export function FilterSheet({
   visible,
   filters,
@@ -52,6 +62,7 @@ export function FilterSheet({
   const { db } = useAppDatabase();
   const { ctx } = useGame();
   const { types } = useCatalog();
+  const combined = useFeature('pokedex.combinedFilters');
   const [abilityQuery, setAbilityQuery] = useState('');
 
   const { data: options } = useAsync(async () => {
@@ -77,7 +88,15 @@ export function FilterSheet({
     return selected ? [selected, ...matches] : matches;
   }, [options?.abilities, abilityQuery, filters.abilityId]);
 
-  const set = (patch: Partial<PokedexFilterState>) => onChange({ ...filters, ...patch });
+  const set = (patch: Partial<PokedexFilterState>) => {
+    const next = { ...filters, ...patch };
+    if (!combined && needsCombinedFilters(filters, next)) {
+      onClose();
+      openPro();
+      return;
+    }
+    onChange(next);
+  };
   const tags = (options?.tags ?? []).filter(isKnownTag);
 
   return (
@@ -101,6 +120,11 @@ export function FilterSheet({
         </>
       }
     >
+      {combined ? null : (
+        <ThemedText variant="small" muted style={styles.notice}>
+          {t('pokedex.oneFilterGroup')}
+        </ThemedText>
+      )}
       <Section title={t('pokedex.filter.types')}>
         <View style={ui.wrap}>
           {types.map((type) => {
@@ -246,4 +270,5 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
+  notice: { marginBottom: SPACING.md },
 });

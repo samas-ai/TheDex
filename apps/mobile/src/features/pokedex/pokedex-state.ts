@@ -50,6 +50,31 @@ export function activeFilterCount(filters: PokedexFilterState): number {
   );
 }
 
+/** Filter groups in use: types, generation, region, category, capture, egg group, ability. */
+export function activeFilterGroups(filters: PokedexFilterState): number {
+  return [
+    filters.typeIds.length > 0,
+    filters.generationIds.length > 0,
+    filters.regionIds.length > 0,
+    filters.tags.length > 0,
+    filters.capture !== null,
+    filters.eggGroupId !== null,
+    filters.abilityId !== null,
+  ].filter(Boolean).length;
+}
+
+/**
+ * Whether a change needs combined filters (PRO, RNF08): it adds a second group or more. Changes
+ * that do not add a group are always allowed, so filters left from a PRO session can be undone.
+ */
+export function needsCombinedFilters(
+  current: PokedexFilterState,
+  next: PokedexFilterState,
+): boolean {
+  const groups = activeFilterGroups(next);
+  return groups > 1 && groups > activeFilterGroups(current);
+}
+
 export { toggle } from '../../shared/toggle';
 
 /** Type filter: at most two types combined; a third replaces the oldest. */

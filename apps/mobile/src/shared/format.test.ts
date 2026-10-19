@@ -4,6 +4,7 @@ import {
   dexNumber,
   formatHeight,
   formatPercent,
+  formatDateTime,
   formatPrice,
   formatWeight,
   genderRatio,
@@ -44,5 +45,11 @@ describe('prices (RF05.2)', () => {
   it('formats Pokédollars with the locale grouping', () => {
     expect(formatPrice(40000, 'en')).toBe('₽40,000');
     expect(formatPrice(40000, 'pt-BR')).toBe('₽40.000');
+  });
+
+  it('formats dates and times in the UI locale', () => {
+    const date = new Date(2026, 9, 19, 8, 52).getTime();
+    expect(formatDateTime(date, 'en')).toMatch(/Oct 19, 2026.*08:52/);
+    expect(formatDateTime(date, 'pt-BR')).toMatch(/19 de out\.? de 2026.*08:52/);
   });
 });

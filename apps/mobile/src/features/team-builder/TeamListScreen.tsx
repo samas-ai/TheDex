@@ -7,12 +7,17 @@ import { PokemonSprite } from '../../entities/pokemon/PokemonSprite';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
 import { useGame } from '../../shared/game/GameProvider';
 import { useAsync } from '../../shared/hooks/useAsync';
+import { FREE_TEAM_LIMIT, remainingTeams } from '../../shared/pro/features';
+import { openPro, useFeature } from '../../shared/pro/ProProvider';
 import { useTheme } from '../../shared/theme/ThemeProvider';
 import { Icon } from '../../shared/ui/Icon';
 import { Button, Card, Loading, Message, ThemedText } from '../../shared/ui/primitives';
 import { teamStore, useTeamsVersion } from './team-store';
 
-/** RF08.1: the user's teams, each built for a game; new teams start in the selected game. */
+/**
+ * RF08.1: the user's teams, each built for a game; new teams start in the selected game. The free
+ * plan creates up to FREE_TEAM_LIMIT teams (`team.unlimited` is PRO, RNF08).
+ */
 export function TeamListScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -20,6 +25,8 @@ export function TeamListScreen() {
   const { ctx, games } = useGame();
   const version = useTeamsVersion();
   const teams = useAsync(() => listTeams(db), [db, version]);
+  const unlimited = useFeature('team.unlimited');
+  const count = teams.data?.length ?? 0;
   const gameName = (id: number | null) => games.find((game) => game.id === id)?.name ?? '';
 
   const create = async () => {
@@ -48,7 +55,11 @@ export function TeamListScreen() {
       <Stack.Screen options={{ title: t('nav.teams') }} />
       <View style={styles.actions}>
         <View style={styles.flex}>
-          <Button label={t('teams.new')} onPress={() => void create()} />
+          <Button
+            label={t('teams.new')}
+            onPress={() => (remainingTeams(count, unlimited) > 0 ? void create() : openPro())}
+            disabled={!teams.data}
+          />
         </View>
         <View style={styles.flex}>
           <Button
@@ -59,6 +70,11 @@ export function TeamListScreen() {
           />
         </View>
       </View>
+      {unlimited || !teams.data ? null : (
+        <ThemedText variant="caption" muted>
+          {t('teams.freeLimit', { count, limit: FREE_TEAM_LIMIT })}
+        </ThemedText>
+      )}
       {!teams.data ? (
         <Loading />
       ) : teams.data.length === 0 ? (

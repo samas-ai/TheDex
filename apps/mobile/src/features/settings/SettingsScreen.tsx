@@ -7,22 +7,32 @@ import { useAppDatabase } from '../../shared/db/DatabaseProvider';
 import { useGame } from '../../shared/game/GameProvider';
 import { useAsync } from '../../shared/hooks/useAsync';
 import { en, type Translations } from '../../shared/i18n/locales/en';
+import { unlockedTheme } from '../../shared/pro/features';
+import { useFeature, useRequirePro } from '../../shared/pro/ProProvider';
 import { UI_LANGUAGES } from '../../shared/settings/settings';
 import { useSettings } from '../../shared/settings/SettingsProvider';
 import { useTheme } from '../../shared/theme/ThemeProvider';
 import { Card, Chip, InfoRow, Section, styles as ui, ThemedText } from '../../shared/ui/primitives';
+import { BackupSection } from './BackupSection';
 import { MediaSection } from './MediaSection';
 
 type LanguageKey = keyof Translations['languages'];
 const isLanguageKey = (code: string): code is LanguageKey => Object.hasOwn(en.languages, code);
 
-/** RNF04 (theme, sprite style), RNF05 (UI vs game-data language), RF01.2 and RNF02 (media). */
+/**
+ * RNF04 (theme, sprite style), RNF05 (UI vs game-data language), RF01.2, RNF02 (media) and RNF06
+ * (backup). The AMOLED theme is PRO (RNF08).
+ */
 export function SettingsScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const { db, dataVersion } = useAppDatabase();
   const { settings, updateSettings } = useSettings();
   const { game } = useGame();
+  const amoled = useFeature('theme.amoled');
+  const requirePro = useRequirePro();
+  // A locked AMOLED choice shows as the dark theme it falls back to.
+  const themeChoice = unlockedTheme(settings.theme, amoled);
   const { data: gameLanguages } = useAsync(() => listGameLanguages(db), [db]);
   const label = (code: string) => (isLanguageKey(code) ? t(`languages.${code}`) : code);
 
@@ -37,14 +47,22 @@ export function SettingsScreen() {
         <Card>
           <ThemedText bold>{t('settings.theme')}</ThemedText>
           <View style={ui.wrap}>
-            {THEME_PREFERENCES.map((preference) => (
-              <Chip
-                key={preference}
-                label={t(`settings.themes.${preference}`)}
-                selected={settings.theme === preference}
-                onPress={() => updateSettings({ theme: preference })}
-              />
-            ))}
+            {THEME_PREFERENCES.map((preference) => {
+              const label = t(`settings.themes.${preference}`);
+              const locked = preference === 'amoled' && !amoled;
+              return (
+                <Chip
+                  key={preference}
+                  label={locked ? t('pro.badge', { label }) : label}
+                  selected={themeChoice === preference}
+                  onPress={() =>
+                    preference === 'amoled'
+                      ? requirePro('theme.amoled', () => updateSettings({ theme: preference }))
+                      : updateSettings({ theme: preference })
+                  }
+                />
+              );
+            })}
           </View>
           <ThemedText bold>{t('settings.spriteStyle')}</ThemedText>
           <View style={ui.wrap}>
@@ -102,6 +120,8 @@ export function SettingsScreen() {
       </Section>
 
       <MediaSection />
+
+      <BackupSection />
 
       <Section title={t('settings.about')}>
         <Card>

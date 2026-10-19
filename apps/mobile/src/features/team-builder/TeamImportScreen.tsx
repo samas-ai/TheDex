@@ -7,6 +7,7 @@ import { assertGeneration, parseShowdownTeams } from '@thedex/engine';
 import {
   createUlid,
   getPokemonProfile,
+  listTeams,
   nextTeamSortOrder,
   resolveGameContext,
   resolveShowdownNames,
@@ -17,6 +18,8 @@ import {
 import { FONT_SIZES, RADII, SPACING } from '@thedex/ui-tokens';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
 import { useGame } from '../../shared/game/GameProvider';
+import { remainingTeams } from '../../shared/pro/features';
+import { openPro, useFeature } from '../../shared/pro/ProProvider';
 import { useTheme } from '../../shared/theme/ThemeProvider';
 import { PickerModal } from '../../shared/ui/PickerModal';
 import { Button, Card, InfoRow, Section, ThemedText } from '../../shared/ui/primitives';
@@ -35,6 +38,7 @@ export function TeamImportScreen() {
   const theme = useTheme();
   const { db } = useAppDatabase();
   const { ctx, games } = useGame();
+  const unlimited = useFeature('team.unlimited');
   const [text, setText] = useState('');
   const [chosenGameId, setChosenGameId] = useState<number | null>(null);
   const [picking, setPicking] = useState(false);
@@ -56,7 +60,7 @@ export function TeamImportScreen() {
       const gameCtx = await resolveGameContext(db, game.id, ['en']);
       const unresolved = new Set<string>();
       let sortOrder = await nextTeamSortOrder(db);
-      const created: string[] = [];
+      const ready: Team[] = [];
       for (const [index, imported] of parsed.entries()) {
         const members: TeamMember[] = [];
         for (const set of imported.sets) {
@@ -85,6 +89,19 @@ export function TeamImportScreen() {
           createdAt: now,
           updatedAt: now,
         };
+        ready.push(team);
+      }
+      // The free plan's team limit (RNF08) counts what this import would add.
+      const remaining = remainingTeams((await listTeams(db)).length, unlimited);
+      if (ready.length > remaining) {
+        Alert.alert(t('nav.pro'), t('teams.importLimit', { count: ready.length, remaining }), [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('pro.buy'), onPress: openPro },
+        ]);
+        return;
+      }
+      const created: string[] = [];
+      for (const team of ready) {
         await teamStore.save(db, team);
         created.push(team.id);
       }

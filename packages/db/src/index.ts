@@ -11,6 +11,27 @@ export {
   type AbilityListEntry,
 } from './repos/abilities';
 export {
+  BACKUP_DATA_TABLES,
+  BACKUP_EXTENSION,
+  BACKUP_FORMAT,
+  BACKUP_VERSION,
+  BackupError,
+  backupSchema,
+  exportBackup,
+  parseBackup,
+  restoreBackup,
+  serializeBackup,
+  summarizeBackup,
+  type Backup,
+  type BackupData,
+  type BackupErrorCode,
+  type BackupSummary,
+  type BackupTable,
+  type RestoreMode,
+  type RestoreResult,
+  type TableRestoreResult,
+} from './repos/backup';
+export {
   checklistScope,
   getChecklistEntries,
   getChecklistFlags,
@@ -175,6 +196,13 @@ export {
 } from './repos/profile';
 export { readSettings, SETTING_KEYS, writeSetting, type SettingKey } from './repos/settings';
 export {
+  getSyncState,
+  syncUserData,
+  type SyncResult,
+  type SyncState,
+  type SyncTransport,
+} from './repos/sync';
+export {
   getEntityNames,
   getMoveSummaries,
   getShowdownNames,
@@ -194,6 +222,7 @@ export {
   MOVE_SLOTS,
   newTeamMember,
   nextTeamSortOrder,
+  parseTeamMembers,
   saveTeam,
   TEAM_SIZE,
   teamMemberSchema,

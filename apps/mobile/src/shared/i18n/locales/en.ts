@@ -41,12 +41,14 @@ export const en = {
     compare: 'Compare',
     statCalc: 'Stat calculator',
     catchCalc: 'Catch calculator',
+    pro: 'TheDex PRO',
   },
   pokedex: {
     searchPlaceholder: 'Search Pokémon',
     count: '{{count}} Pokémon',
     empty: 'No Pokémon match these filters.',
     clearFilters: 'Clear filters',
+    oneFilterGroup: 'Free plan: one filter group at a time. Combine them with PRO.',
     sortKeys: {
       number: 'Regional number',
       national: 'National number',
@@ -462,6 +464,9 @@ export const en = {
     imported_one: '{{count}} team imported',
     imported_other: '{{count}} teams imported',
     unresolved: 'Not found (left empty): {{names}}',
+    freeLimit: 'Free plan: {{count}}/{{limit}} teams',
+    importLimit:
+      'This text has {{count}} team(s), but the free plan only has room for {{remaining}} more. PRO has unlimited teams.',
   },
   teamEditor: {
     notFound: 'Team not found.',
@@ -663,6 +668,7 @@ export const en = {
     locationsHint: 'Cities, routes and caves by region',
     typesHint: 'Matchups and the type chart',
     naturesHint: 'Stat changes and favorite flavors',
+    proHint: 'No ads, unlimited teams, shiny checklist and more',
     entityTypes: {
       pokemon: 'Pokémon',
       move: 'Moves',
@@ -703,6 +709,71 @@ export const en = {
     clearCache: 'Clear downloaded media',
     about: 'About',
     dataVersion: 'Game data {{version}}',
+  },
+  backup: {
+    title: 'Backup',
+    hint: 'Teams, favorites, checklist progress and settings, in a .thedex file you can keep in Drive, Files or anywhere else. Downloaded media is not included.',
+    export: 'Export backup',
+    import: 'Restore backup',
+    modes:
+      'Merge keeps the newest version of each item. Replace makes this device match the backup, bringing back what was deleted after it.',
+    exported: 'Backup created: {{teams}} team(s), {{checklist}} checklist mark(s).',
+    importTitle: 'Restore backup',
+    contents:
+      'Backup from {{date}}: {{teams}} team(s) and {{checklist}} checklist mark(s).\n\nMerge keeps the newest version of each item; Replace makes this device match the backup.',
+    merge: 'Merge',
+    replace: 'Replace',
+    replaceTitle: 'Replace your data?',
+    replaceWarning:
+      'Teams and checklist marks that are not in the backup will be removed from this device.',
+    restored:
+      'Restored: {{teams}} team(s), {{checklist}} checklist mark(s), {{settings}} setting(s).',
+    removed_one: '{{count}} item removed.',
+    removed_other: '{{count}} items removed.',
+    skipped_one: '{{count}} item kept: this device had a newer version.',
+    skipped_other: '{{count}} items kept: this device had a newer version.',
+    failed: 'Backup failed',
+    errors: {
+      'invalid-json': 'This file is damaged or is not a TheDex backup.',
+      'not-a-backup': 'This file is not a TheDex backup.',
+      'newer-version':
+        'This backup was made by a newer version of TheDex. Update the app to restore it.',
+      'invalid-data': 'This backup has invalid data and was not restored.',
+    },
+  },
+  pro: {
+    tagline:
+      'Support TheDex and unlock the advanced tools. Everything else stays free and offline.',
+    planFree: 'Free plan',
+    planPro: 'PRO',
+    benefits: 'What PRO unlocks',
+    features: {
+      ads: { removed: { title: 'No ads', hint: 'Removes the banners from the app.' } },
+      team: {
+        unlimited: { title: 'Unlimited teams', hint: 'The free plan keeps {{limit}} teams.' },
+      },
+      checklist: {
+        shiny: { title: 'Shiny checklist', hint: 'Mark shiny catches and filter what is missing.' },
+      },
+      pokedex: {
+        combinedFilters: {
+          title: 'Combined filters',
+          hint: 'Mix type, generation, region, ability, egg group and more in the Pokédex.',
+        },
+      },
+      theme: { amoled: { title: 'AMOLED theme', hint: 'Pure black, easy on OLED screens.' } },
+    },
+    buy: 'Get PRO',
+    restore: 'Restore purchase',
+    storeUnavailable: 'Purchases are not open in this version yet.',
+    simulate: 'Simulate plan (development)',
+    simulateHint: 'Development builds only: try the free and PRO experiences without a purchase.',
+    simulateStore: 'Store',
+    locked: '{{feature}} — PRO',
+    bannerTitle: 'TheDex PRO',
+    banner: 'No ads, unlimited teams and the shiny checklist',
+    adLabel: 'Ad',
+    badge: '{{label}} · PRO',
   },
   languages: {
     en: 'English',
