@@ -15,7 +15,10 @@ import {
   getMoveSummaries,
   getShowdownNames,
   getTeam,
+  isFavorite,
   listChecklistDex,
+  listFavoriteEntries,
+  listFavorites,
   listTeams,
   natureFromShowdown,
   newTeamMember,
@@ -23,6 +26,7 @@ import {
   resolveShowdownNames,
   saveTeam,
   setChecklistEntries,
+  setFavorite,
   getAbilityDetail,
   getAbilityHolders,
   getEvolutionChain,
@@ -209,6 +213,27 @@ describe('listPokedex (RF01)', () => {
     expect(await capture('caught')).toEqual(['Charcadet', 'Pikachu']);
     expect(await capture('shiny')).toEqual(['Charcadet']);
     expect(await capture('not-caught')).toEqual(['Charmander', 'Charizard', 'Mega Charizard X']);
+  });
+
+  it('filters by favorites through the attached user DB', async () => {
+    await setFavorite(db, 'pokemon', 6, true, 1);
+    await setFavorite(db, 'pokemon', 10034, true, 2);
+    await setFavorite(db, 'pokemon', 25, true, 3);
+    await setFavorite(db, 'pokemon', 25, false, 4);
+    // Same id, another entity type: not a Pokémon favorite.
+    await setFavorite(db, 'move', 4, true, 5);
+    try {
+      expect(await names(sv, { filters: { favorites: true } })).toEqual([
+        'Charizard',
+        'Mega Charizard X',
+      ]);
+      expect(await names(sv, { filters: { favorites: true, includeForms: false } })).toEqual([
+        'Charizard',
+      ]);
+      expect(await names(sv, { filters: { favorites: false } })).toHaveLength(5);
+    } finally {
+      app.exec('DELETE FROM favorites');
+    }
   });
 });
 
@@ -937,6 +962,38 @@ describe('checklist (RF09)', () => {
   });
 });
 
+describe('favorites (RNF06)', () => {
+  it('lists every favorite with its name, by entity type, then by name', async () => {
+    await setFavorite(db, 'location', 155, true, 1);
+    await setFavorite(db, 'pokemon', 25, true, 2);
+    await setFavorite(db, 'item', 17, true, 3);
+    await setFavorite(db, 'pokemon', 6, true, 4);
+    await setFavorite(db, 'move', 85, true, 5);
+    await setFavorite(db, 'ability', 65, true, 6);
+    await setFavorite(db, 'pokemon', 4, true, 7);
+    await setFavorite(db, 'pokemon', 4, false, 8);
+    // Not in the game DB (a newer data version): skipped.
+    await setFavorite(db, 'pokemon', 99999, true, 9);
+    try {
+      expect(await isFavorite(db, 'pokemon', 25)).toBe(true);
+      expect((await listFavorites(db, 'pokemon')).map((f) => f.entityId)).toEqual([99999, 6, 25]);
+      const entries = await listFavoriteEntries(db, ['pt-BR', 'en']);
+      expect(entries.map((e) => [e.entityType, e.entityId, e.name])).toEqual([
+        ['pokemon', 6, 'Charizard'],
+        ['pokemon', 25, 'Pikachu'],
+        ['move', 85, 'Thunderbolt'],
+        ['ability', 65, 'Overgrow'],
+        ['item', 17, 'Potion'],
+        ['location', 155, 'Viridian Forest'],
+      ]);
+      expect(entries[1]?.createdAt).toBe(2);
+    } finally {
+      app.exec('DELETE FROM favorites');
+    }
+    expect(await listFavoriteEntries(db, ['en'])).toEqual([]);
+  });
+});
+
 describe('team data and Showdown names (RF08.2, RF08.4)', () => {
   it('summarizes moves as of the game', async () => {
     const moves = await getMoveSummaries(db, sv, [85, 44, 85]);
@@ -960,6 +1017,7 @@ describe('team data and Showdown names (RF08.2, RF08.4)', () => {
     expect(await names('item', [17])).toEqual({ 17: 'Potion' });
     expect(await names('ability', [65, 66])).toEqual({ 65: 'Overgrow', 66: 'blaze' });
     expect(await names('move', [85])).toEqual({ 85: 'Thunderbolt' });
+    expect(await names('location', [155])).toEqual({ 155: 'Viridian Forest' });
     expect(await names('move', [])).toEqual({});
   });
 

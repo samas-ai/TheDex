@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { checklistScope, listPokedex, searchQuery, type PokedexEntry } from '@thedex/db';
 import { SPACING } from '@thedex/ui-tokens';
+import { useFavoritesVersion } from '../../entities/favorite/favorites-store';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
 import { useUserDataVersion } from '../../shared/db/user-data-events';
 import { useGame } from '../../shared/game/GameProvider';
@@ -39,6 +40,7 @@ export function PokedexScreen() {
   const captureScope = checklistScope(settings.checklistKind, ctx.gameId);
   // The capture filter reads the checklist, which a backup restore may replace.
   const userData = useUserDataVersion();
+  const favoritesVersion = useFavoritesVersion();
   const [filters, setFilters] = useState<PokedexFilterState>(EMPTY_FILTERS);
   const [sort, setSort] = useState<PokedexSort>(DEFAULT_SORT);
   const [query, setQuery] = useState('');
@@ -46,7 +48,8 @@ export function PokedexScreen() {
 
   const list = useAsync(
     () => listPokedex(db, ctx, { filters: toRepoFilters(filters, captureScope), sort }),
-    [db, ctx, filters, sort, captureScope, userData],
+    // A star toggled in a profile only changes the list under the favorites filter.
+    [db, ctx, filters, sort, captureScope, userData, filters.favorites ? favoritesVersion : 0],
   );
   const search = useAsync(async () => {
     if (query.trim() === '') return null;
@@ -114,7 +117,11 @@ export function PokedexScreen() {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <Message
-              text={t('pokedex.empty')}
+              text={
+                filters.favorites && filterCount === 1
+                  ? t('pokedex.noFavorites')
+                  : t('pokedex.empty')
+              }
               action={
                 filterCount > 0 ? (
                   <Button

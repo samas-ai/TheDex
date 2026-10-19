@@ -1,10 +1,11 @@
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { searchQuery, SEARCH_ENTITY_TYPES, type SearchHit } from '@thedex/db';
+import { searchQuery, SEARCH_ENTITY_TYPES } from '@thedex/db';
 import { SPACING } from '@thedex/ui-tokens';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
+import { entityHref } from '../../shared/entity-href';
 import { useGame } from '../../shared/game/GameProvider';
 import { useAsync } from '../../shared/hooks/useAsync';
 import { AdSlot } from '../../shared/pro/AdSlot';
@@ -16,28 +17,8 @@ import { SearchField } from '../../shared/ui/SearchField';
 
 const RESULTS_PER_TYPE = 6;
 
-/** Where a search hit opens. */
-export function hitHref(hit: Pick<SearchHit, 'entityType' | 'entityId'>): Href {
-  switch (hit.entityType) {
-    case 'pokemon':
-      return `/pokemon/${hit.entityId}`;
-    case 'move':
-      return `/move/${hit.entityId}`;
-    case 'ability':
-      return `/ability/${hit.entityId}`;
-    case 'item':
-      return `/item/${hit.entityId}`;
-    case 'location':
-      return `/location/${hit.entityId}`;
-    case 'type':
-      return `/types?type=${hit.entityId}`;
-    case 'nature':
-      return '/natures';
-  }
-}
-
 /**
- * "More": global search over every encyclopedia (RNF07), the tools (teams, checklist,
+ * "More": global search over every encyclopedia (RNF07), the tools (favorites, teams, checklist,
  * comparator, calculators), the secondary Dexes and the app (settings, TheDex PRO).
  */
 export function MoreScreen() {
@@ -81,7 +62,7 @@ export function MoreScreen() {
                     key={hit.entityId}
                     title={hit.name}
                     subtitle={hit.matched !== hit.name ? hit.matched : null}
-                    onPress={() => router.push(hitHref(hit))}
+                    onPress={() => router.push(entityHref(hit.entityType, hit.entityId))}
                   />
                 ))}
               </Card>
@@ -92,6 +73,12 @@ export function MoreScreen() {
         <>
           <Section title={t('more.tools')}>
             <Card>
+              <LinkRow
+                title={t('nav.favorites')}
+                subtitle={t('more.favoritesHint')}
+                leading={entry('star')}
+                onPress={() => router.push('/favorites')}
+              />
               <LinkRow
                 title={t('nav.teams')}
                 subtitle={t('more.teamsHint')}

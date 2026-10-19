@@ -16,6 +16,8 @@ export interface PokedexFilterState {
   readonly abilityId: number | null;
   readonly eggGroupId: number | null;
   readonly capture: CaptureStatus | null;
+  /** Only favorite varieties (RNF06). */
+  readonly favorites: boolean;
   readonly includeForms: boolean;
 }
 
@@ -32,6 +34,7 @@ export const EMPTY_FILTERS: PokedexFilterState = {
   abilityId: null,
   eggGroupId: null,
   capture: null,
+  favorites: false,
   includeForms: true,
 };
 
@@ -46,11 +49,15 @@ export function activeFilterCount(filters: PokedexFilterState): number {
     (filters.abilityId === null ? 0 : 1) +
     (filters.eggGroupId === null ? 0 : 1) +
     (filters.capture === null ? 0 : 1) +
+    (filters.favorites ? 1 : 0) +
     (filters.includeForms ? 0 : 1)
   );
 }
 
-/** Filter groups in use: types, generation, region, category, capture, egg group, ability. */
+/**
+ * Filter groups in use: types, generation, region, category, capture, favorites, egg group,
+ * ability.
+ */
 export function activeFilterGroups(filters: PokedexFilterState): number {
   return [
     filters.typeIds.length > 0,
@@ -58,6 +65,7 @@ export function activeFilterGroups(filters: PokedexFilterState): number {
     filters.regionIds.length > 0,
     filters.tags.length > 0,
     filters.capture !== null,
+    filters.favorites,
     filters.eggGroupId !== null,
     filters.abilityId !== null,
   ].filter(Boolean).length;
@@ -95,6 +103,7 @@ export function toRepoFilters(filters: PokedexFilterState, captureScope: string)
     abilityId: filters.abilityId,
     eggGroupId: filters.eggGroupId,
     capture: filters.capture ? { scope: captureScope, status: filters.capture } : null,
+    favorites: filters.favorites,
     includeForms: filters.includeForms,
   };
 }

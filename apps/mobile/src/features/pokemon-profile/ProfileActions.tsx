@@ -2,9 +2,13 @@ import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SPACING } from '@thedex/ui-tokens';
+import { FavoriteButton } from '../../entities/favorite/FavoriteButton';
 import { Icon, type IconName } from '../../shared/ui/Icon';
 
-/** Header shortcuts of a profile into the tools: compare (RF10), stat and catch calculators (RF11). */
+/**
+ * Header actions of a profile: shortcuts into the tools (compare, RF10; stat and catch
+ * calculators, RF11) and the favorite star.
+ */
 export function ProfileActions({ pokemonId, color }: { pokemonId: number; color: string }) {
   const { t } = useTranslation();
   const actions: readonly { icon: IconName; label: string; href: Href }[] = [
@@ -29,6 +33,7 @@ export function ProfileActions({ pokemonId, color }: { pokemonId: number; color:
           <Icon name={action.icon} color={color} />
         </Pressable>
       ))}
+      <FavoriteButton entityType="pokemon" entityId={pokemonId} color={color} />
     </View>
   );
 }

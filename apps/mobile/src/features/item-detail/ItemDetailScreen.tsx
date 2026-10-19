@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { getItemDetail, type BerryInfo, type ItemDetail } from '@thedex/db';
 import { SPACING } from '@thedex/ui-tokens';
 import { useCatalog } from '../../entities/catalog/CatalogProvider';
+import { FavoriteButton } from '../../entities/favorite/FavoriteButton';
 import { ItemIcon } from '../../entities/item/ItemIcon';
 import { PokemonSprite } from '../../entities/pokemon/PokemonSprite';
 import { TypeBadge } from '../../entities/pokemon/TypeBadge';
@@ -59,7 +60,12 @@ export function ItemDetailScreen({ itemId }: { itemId: number }) {
       style={{ backgroundColor: theme.colors.background }}
       contentContainerStyle={styles.content}
     >
-      <Stack.Screen options={{ title: item.name }} />
+      <Stack.Screen
+        options={{
+          title: item.name,
+          headerRight: () => <FavoriteButton entityType="item" entityId={itemId} />,
+        }}
+      />
       <View style={styles.header}>
         <View style={[styles.iconBox, { backgroundColor: theme.colors.surface }]}>
           <ItemIcon itemId={item.id} size={56} />

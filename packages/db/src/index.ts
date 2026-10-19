@@ -73,6 +73,18 @@ export {
   type PokemonForms,
   type PokemonVariety,
 } from './repos/evolution';
+export {
+  FAVORITE_ENTITY_TYPES,
+  isFavorite,
+  isFavoriteEntityType,
+  listFavoriteEntries,
+  listFavorites,
+  setFavorite,
+  toggleFavorite,
+  type Favorite,
+  type FavoriteEntityType,
+  type FavoriteEntry,
+} from './repos/favorites';
 export { latestFlavorText, type FlavorTable } from './repos/flavor';
 export {
   getGameFeatures,

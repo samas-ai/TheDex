@@ -44,9 +44,10 @@ describe('pokedex state', () => {
         ...EMPTY_FILTERS,
         typeIds: [10, 3],
         capture: 'caught',
+        favorites: true,
         includeForms: false,
       }),
-    ).toBe(4);
+    ).toBe(5);
   });
 
   it('counts filter groups and gates combining them (PRO)', () => {
@@ -60,6 +61,9 @@ describe('pokedex state', () => {
     expect(needsCombinedFilters(types, { ...types, typeIds: [10] })).toBe(false);
     expect(needsCombinedFilters(types, typesAndGen)).toBe(true);
     expect(needsCombinedFilters(types, { ...types, capture: 'caught' })).toBe(true);
+    // Favorites are a group of their own.
+    expect(needsCombinedFilters(EMPTY_FILTERS, { ...EMPTY_FILTERS, favorites: true })).toBe(false);
+    expect(needsCombinedFilters(types, { ...types, favorites: true })).toBe(true);
     // Removing or changing within groups is always allowed.
     expect(needsCombinedFilters(typesAndGen, { ...typesAndGen, generationIds: [1] })).toBe(false);
     expect(needsCombinedFilters(typesAndGen, types)).toBe(false);
@@ -80,6 +84,11 @@ describe('pokedex state', () => {
       status: 'shiny',
     });
     expect(toRepoFilters(EMPTY_FILTERS, 'national').capture).toBeNull();
+  });
+
+  it('passes the favorites filter through', () => {
+    expect(toRepoFilters({ ...EMPTY_FILTERS, favorites: true }, 'national').favorites).toBe(true);
+    expect(toRepoFilters(EMPTY_FILTERS, 'national').favorites).toBe(false);
   });
 
   it('flips direction on the active key and starts stats descending', () => {

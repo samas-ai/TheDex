@@ -10,6 +10,7 @@ import {
   type AbilityHolder,
 } from '@thedex/db';
 import { SPACING } from '@thedex/ui-tokens';
+import { FavoriteButton } from '../../entities/favorite/FavoriteButton';
 import { PokemonRow } from '../../entities/pokemon/PokemonRow';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
 import { useGame } from '../../shared/game/GameProvider';
@@ -67,7 +68,12 @@ export function AbilityDetailScreen({ abilityId }: { abilityId: number }) {
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <Stack.Screen options={{ title: ability.name }} />
+      <Stack.Screen
+        options={{
+          title: ability.name,
+          headerRight: () => <FavoriteButton entityType="ability" entityId={abilityId} />,
+        }}
+      />
       <FlashList
         data={rows}
         keyExtractor={(row) => row.key}
