@@ -44,11 +44,13 @@ export const ptBR: Translations = {
     statCalc: 'Calculadora de atributos',
     catchCalc: 'Calculadora de captura',
     pro: 'TheDex PRO',
+    favorites: 'Favoritos',
   },
   pokedex: {
     searchPlaceholder: 'Buscar Pokémon',
     count: '{{count}} Pokémon',
     empty: 'Nenhum Pokémon corresponde a esses filtros.',
+    noFavorites: 'Nenhum Pokémon favorito neste jogo ainda. Toque na estrela de um perfil.',
     clearFilters: 'Limpar filtros',
     oneFilterGroup: 'No plano grátis, filtre um grupo de cada vez. Combine filtros com o PRO.',
     sortKeys: {
@@ -71,6 +73,8 @@ export const ptBR: Translations = {
       region: 'Região',
       category: 'Categoria',
       capture: 'Status de captura',
+      favorites: 'Favoritos',
+      favoritesOnly: 'Só favoritos',
       eggGroup: 'Grupo de ovo',
       ability: 'Habilidade',
       abilitySearch: 'Buscar habilidades',
@@ -574,6 +578,12 @@ export const ptBR: Translations = {
     hint: 'Toque no olho, na Poké Bola ou na estrela para marcar; toque de novo na marca atual para voltar um passo.',
     count: '{{count}} Pokémon',
   },
+  favorites: {
+    add: 'Adicionar aos favoritos',
+    remove: 'Remover dos favoritos',
+    empty:
+      'Nada aqui ainda. Toque na estrela de um Pokémon, golpe, habilidade, item ou local para guardá-lo aqui.',
+  },
   compare: {
     add: 'Adicionar Pokémon',
     empty: 'Escolha dois ou mais Pokémon para compará-los lado a lado.',
@@ -667,6 +677,7 @@ export const ptBR: Translations = {
     encyclopedias: 'Enciclopédias',
     app: 'Aplicativo',
     tools: 'Ferramentas',
+    favoritesHint: 'Pokémon, golpes, habilidades, itens e locais marcados com estrela',
     teamsHint: 'Monte times, veja a cobertura, importe e exporte',
     checklistHint: 'Pokémon vistos, capturados e shiny',
     compareHint: 'Atributos, tipos e fraquezas lado a lado',

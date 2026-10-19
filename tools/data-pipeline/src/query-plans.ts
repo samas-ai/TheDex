@@ -26,10 +26,13 @@ import {
   getPokemonProfile,
   getShowdownNames,
   getTeam,
+  isFavorite,
   listAbilities,
   listAbilityDex,
   listChecklistDex,
   listDamageClasses,
+  listFavoriteEntries,
+  listFavorites,
   listGamePokemon,
   listGmaxMoves,
   listItems,
@@ -127,8 +130,8 @@ export function openAppLikeConnection(dataDbFile: string): Database.Database {
 
 /**
  * Runs the hot repository queries (search, Pokédex list with every filter and sort, profile
- * tabs, the Phase 3 encyclopedias, the Phase 4 tools) through a logging Drizzle instance and checks every
- * statement with EXPLAIN QUERY PLAN. The sample ids exist in the real data and the fixtures:
+ * tabs, the Phase 3 encyclopedias, the Phase 4 tools, favorites) through a logging Drizzle
+ * instance and checks every statement with EXPLAIN QUERY PLAN. The sample ids exist in the real data and the fixtures:
  * Thunderbolt (85), Potion (17), Viridian Forest (155), Kanto (1).
  */
 export async function checkHotQueryPlans(
@@ -172,6 +175,7 @@ export async function checkHotQueryPlans(
           eggGroupId: 6,
           tags: ['legendary', 'starter'],
           capture: { scope: 'national', status: 'caught' },
+          favorites: true,
           includeForms: false,
         },
         sort: { key: 'speed', direction: 'desc' },
@@ -179,6 +183,9 @@ export async function checkHotQueryPlans(
     );
     await run('listPokedex not caught', () =>
       listPokedex(db, ctx, { filters: { capture: { scope: 'national', status: 'not-caught' } } }),
+    );
+    await run('listPokedex favorites', () =>
+      listPokedex(db, ctx, { filters: { favorites: true } }),
     );
     await run('listAbilities', () => listAbilities(db, ctx));
     await run('getPokemon', () => getPokemon(db, sample.pokemonId, ctx));
@@ -256,6 +263,18 @@ export async function checkHotQueryPlans(
         moves: [85],
       }),
     );
+
+    // Favorites (RNF06): the star of every detail screen and the favorites screen.
+    await run('isFavorite', () => isFavorite(db, 'pokemon', sample.pokemonId));
+    await run('listFavorites', () => listFavorites(db, 'pokemon'));
+    app
+      .prepare(
+        `INSERT INTO favorites (entity_type, entity_id, created_at, updated_at) VALUES
+         ('pokemon', ?, 1, 1), ('move', 85, 1, 1), ('ability', 65, 1, 1), ('item', 17, 1, 1),
+         ('location', 155, 1, 1)`,
+      )
+      .run(sample.pokemonId);
+    await run('listFavoriteEntries', () => listFavoriteEntries(db, ctx.langChain));
 
     const violations: PlanViolation[] = [];
     for (const query of captured) {

@@ -188,6 +188,16 @@ export function FilterSheet({
             </Section>
           ) : null}
 
+          <Section title={t('pokedex.filter.favorites')}>
+            <View style={ui.wrap}>
+              <Chip
+                label={t('pokedex.filter.favoritesOnly')}
+                selected={filters.favorites}
+                onPress={() => set({ favorites: !filters.favorites })}
+              />
+            </View>
+          </Section>
+
           <Section title={t('pokedex.filter.capture')}>
             <View style={ui.wrap}>
               {CAPTURE_STATUSES.map((status) => (

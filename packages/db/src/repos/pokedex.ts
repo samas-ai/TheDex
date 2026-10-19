@@ -37,6 +37,8 @@ export interface PokedexFilters {
   readonly tags?: readonly string[];
   /** Checklist status in `scope` (`national` or a game scope, see checklist_entries). */
   readonly capture?: { readonly scope: string; readonly status: CaptureStatus } | null;
+  /** Only the user's favorite varieties (thedex-user.db `favorites`). */
+  readonly favorites?: boolean;
   /** Include alternate varieties (Mega, regional, G-Max…). Default true. */
   readonly includeForms?: boolean;
 }
@@ -150,6 +152,10 @@ function filterClauses(filters: PokedexFilters, ctx: GameContext): SQL[] {
         AND ce.deleted_at IS NULL AND ${sql.raw(CAPTURE_CONDITIONS[status])})`;
     clauses.push(status === 'not-caught' ? sql`NOT ${exists}` : exists);
   }
+  if (filters.favorites) {
+    clauses.push(sql`EXISTS (SELECT 1 FROM favorites f
+      WHERE f.entity_type = 'pokemon' AND f.entity_id = p.id AND f.deleted_at IS NULL)`);
+  }
   return clauses;
 }
 
@@ -176,8 +182,8 @@ interface EntryRow {
 /**
  * RF01: varieties available in the context game with filters (RF01.3) and sorting (RF01.4).
  * Every filter is an indexed EXISTS/IN on a primary key or a `(generation_id, …)` index; the
- * capture filter joins the attached user DB. Without `limit`, the whole list is returned
- * (≈ 1 000 rows at most), which the UI virtualizes.
+ * capture and favorites filters join the attached user DB. Without `limit`, the whole list is
+ * returned (≈ 1 000 rows at most), which the UI virtualizes.
  */
 export async function listPokedex(
   db: AnySQLiteDatabase,

@@ -42,11 +42,13 @@ export const en = {
     statCalc: 'Stat calculator',
     catchCalc: 'Catch calculator',
     pro: 'TheDex PRO',
+    favorites: 'Favorites',
   },
   pokedex: {
     searchPlaceholder: 'Search Pokémon',
     count: '{{count}} Pokémon',
     empty: 'No Pokémon match these filters.',
+    noFavorites: 'No favorite Pokémon in this game yet. Tap the star on a profile to add one.',
     clearFilters: 'Clear filters',
     oneFilterGroup: 'Free plan: one filter group at a time. Combine them with PRO.',
     sortKeys: {
@@ -69,6 +71,8 @@ export const en = {
       region: 'Region',
       category: 'Category',
       capture: 'Capture status',
+      favorites: 'Favorites',
+      favoritesOnly: 'Favorites only',
       eggGroup: 'Egg group',
       ability: 'Ability',
       abilitySearch: 'Search abilities',
@@ -565,6 +569,12 @@ export const en = {
     hint: 'Tap the eye, Poké Ball or star to mark; tap the current mark again to step back.',
     count: '{{count}} Pokémon',
   },
+  favorites: {
+    add: 'Add to favorites',
+    remove: 'Remove from favorites',
+    empty:
+      'Nothing here yet. Tap the star on a Pokémon, move, ability, item or location to keep it here.',
+  },
   compare: {
     add: 'Add Pokémon',
     empty: 'Pick two or more Pokémon to compare them side by side.',
@@ -659,6 +669,7 @@ export const en = {
     encyclopedias: 'Encyclopedias',
     app: 'App',
     tools: 'Tools',
+    favoritesHint: 'Pokémon, moves, abilities, items and locations you starred',
     teamsHint: 'Build teams, check coverage, import and export',
     checklistHint: 'Track seen, caught and shiny Pokémon',
     compareHint: 'Stats, typings and weaknesses side by side',

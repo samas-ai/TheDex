@@ -10,6 +10,7 @@ import {
   type LocationDetail,
 } from '@thedex/db';
 import { SPACING } from '@thedex/ui-tokens';
+import { FavoriteButton } from '../../entities/favorite/FavoriteButton';
 import { LOCATION_KIND_ICONS } from '../../entities/location/location-icons';
 import { PokemonRow } from '../../entities/pokemon/PokemonRow';
 import { useAppDatabase } from '../../shared/db/DatabaseProvider';
@@ -76,7 +77,12 @@ export function LocationDetailScreen({ locationId }: { locationId: number }) {
   const empty = encounters.data !== undefined && encounters.data.length === 0;
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <Stack.Screen options={{ title: location.name }} />
+      <Stack.Screen
+        options={{
+          title: location.name,
+          headerRight: () => <FavoriteButton entityType="location" entityId={locationId} />,
+        }}
+      />
       <FlashList
         data={rows}
         keyExtractor={(row) => row.key}

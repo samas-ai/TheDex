@@ -61,7 +61,7 @@ export async function getMoveSummaries(
 }
 
 /** Entity kinds whose names `getEntityNames` resolves. */
-export type NamedKind = 'pokemon' | 'item' | 'ability' | 'move';
+export type NamedKind = 'pokemon' | 'item' | 'ability' | 'move' | 'location';
 
 const NAME_TABLES: Readonly<
   Record<Exclude<NamedKind, 'pokemon'>, readonly [string, string, string]>
@@ -69,6 +69,7 @@ const NAME_TABLES: Readonly<
   item: ['items', 'item_i18n', 'item_id'],
   ability: ['abilities', 'ability_i18n', 'ability_id'],
   move: ['moves', 'move_i18n', 'move_id'],
+  location: ['locations', 'location_i18n', 'location_id'],
 };
 
 /** Names by id in the context languages (identifier when untranslated). */

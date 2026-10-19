@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { getMoveDetail, getMoveLearners, type LearnTab, type MoveDetail } from '@thedex/db';
 import { SPACING, type TypeAccent } from '@thedex/ui-tokens';
 import { useCatalog } from '../../entities/catalog/CatalogProvider';
+import { FavoriteButton } from '../../entities/favorite/FavoriteButton';
 import { DamageClassBadge } from '../../entities/move/DamageClassBadge';
 import {
   formatMoveValue,
@@ -60,6 +61,7 @@ export function MoveDetailScreen({ moveId }: { moveId: number }) {
     headerStyle: { backgroundColor: accent.tint },
     headerTintColor: accent.text,
     headerShadowVisible: false,
+    headerRight: () => <FavoriteButton entityType="move" entityId={moveId} color={accent.text} />,
   };
 
   if (detail.error) {
